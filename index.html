@@ -1235,9 +1235,13 @@ async function importFromCSVFile(file) {
 async function processImportedCSV(text, status) {
   const rows = parseCSV(text);
   if (!rows.length) { status.style.color='var(--danger)'; status.textContent = '❌ Нет данных. Проверьте формат таблицы.'; return; }
+  await loadAll();
   let added = 0, updated = 0;
+  const seenSkus = new Set();
   for (const row of rows) {
-    const existing = items.find(i => i.sku && i.sku === row.sku);
+    if (row.sku && seenSkus.has(row.sku)) continue;
+    if (row.sku) seenSkus.add(row.sku);
+    const existing = row.sku ? items.find(i => i.sku === row.sku) : null;
     if (existing) {
       await txPut('items', { ...existing, ...row, photo: existing.photo, updatedAt: Date.now() });
       updated++;
