@@ -325,19 +325,16 @@ let photoDataUrl = null;
 
 function openDB() {
   return new Promise((res, rej) => {
-    const req = indexedDB.open('ClothingInventory', 3);
+    const req = indexedDB.open('ClothingInventory', 4);
     req.onupgradeneeded = e => {
       const d = e.target.result;
-      if (!d.objectStoreNames.contains('items')) {
-        const s = d.createObjectStore('items', { keyPath: 'id', autoIncrement: true });
-        s.createIndex('sku', 'sku', { unique: false });
-      }
-      if (!d.objectStoreNames.contains('sales')) {
-        d.createObjectStore('sales', { keyPath: 'id', autoIncrement: true });
-      }
-      if (!d.objectStoreNames.contains('reserves')) {
-        d.createObjectStore('reserves', { keyPath: 'id', autoIncrement: true });
-      }
+      ['items','sales','reserves'].forEach(name => {
+        if (d.objectStoreNames.contains(name)) d.deleteObjectStore(name);
+      });
+      const s = d.createObjectStore('items', { keyPath: 'id', autoIncrement: true });
+      s.createIndex('sku', 'sku', { unique: false });
+      d.createObjectStore('sales', { keyPath: 'id', autoIncrement: true });
+      d.createObjectStore('reserves', { keyPath: 'id', autoIncrement: true });
     };
     req.onsuccess = e => { db = e.target.result; res(); };
     req.onerror = e => rej(e);
