@@ -1235,7 +1235,7 @@ async function importFromSheets() {
   if (match) {
     const gidMatch = url.match(/[#&?]gid=(\d+)/);
     const gid = gidMatch ? gidMatch[1] : '0';
-    csvUrl = `https://docs.google.com/spreadsheets/d/${match[1]}/pub?output=csv&gid=${gid}`;
+    csvUrl = `https://docs.google.com/spreadsheets/d/${match[1]}/gviz/tq?tqx=out:csv&gid=${gid}`;
   }
 
   try {
