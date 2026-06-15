@@ -171,7 +171,6 @@
         <option value="zero">Нет</option>
       </select>
       <button class="btn primary" onclick="openAddModal()">+ Добавить товар</button>
-      <button class="btn" onclick="seedManual()" id="seed-btn" style="display:none">📦 Загрузить примеры</button>
     </div>
     <div class="table-wrap">
       <table id="main-table">
@@ -1170,39 +1169,7 @@ async function clearHistory() {
   renderStats();
 }
 
-const SAMPLES = [
-  { sku: 'PJ-001', name: 'Пижама в полоску', category: 'Пижамы', size: 'S/M', price: 1290, cost: 650, qty: 12, minQty: 3 },
-  { sku: 'PJ-002', name: 'Пижама фланелевая клетка', category: 'Пижамы', size: 'L/XL', price: 1490, cost: 750, qty: 8, minQty: 3 },
-  { sku: 'HL-001', name: 'Халат махровый', category: 'Халаты', size: 'Universal', price: 2100, cost: 1100, qty: 5, minQty: 2 },
-  { sku: 'HL-002', name: 'Халат кимоно шёлк', category: 'Халаты', size: 'S/M', price: 2800, cost: 1400, qty: 4, minQty: 2 },
-  { sku: 'FT-001', name: 'Тапочки закрытые', category: 'Тапочки', size: '36-38', price: 590, cost: 280, qty: 20, minQty: 5 },
-  { sku: 'FT-002', name: 'Тапочки открытые помпон', category: 'Тапочки', size: '39-41', price: 490, cost: 230, qty: 2, minQty: 5 },
-];
-
-async function seedIfEmpty() {
-  if (items.length > 0) return;
-  document.getElementById('seed-btn').style.display = '';
-  for (const s of SAMPLES) {
-    await txAdd('items', { ...s, photo: null, desc: '', createdAt: Date.now(), updatedAt: Date.now() });
-  }
-  await loadAll();
-}
-
-async function seedManual() {
-  if (!db) { alert('База данных не готова. Обновите страницу.'); return; }
-  try {
-    for (const s of SAMPLES) {
-      await txAdd('items', { ...s, photo: null, desc: '', createdAt: Date.now(), updatedAt: Date.now() });
-    }
-    await loadAll();
-    renderTable();
-    document.getElementById('seed-btn').style.display = 'none';
-  } catch(err) {
-    alert('Ошибка загрузки примеров: ' + (err && err.message ? err.message : err));
-  }
-}
-
-openDB().then(loadAll).then(seedIfEmpty).then(renderTable).catch(err => {
+openDB().then(loadAll).then(renderTable).catch(err => {
   document.querySelector('main').innerHTML = `<div class="empty"><p style="color:var(--danger);font-size:15px">Не удалось открыть базу данных.<br><br>${err && err.message ? err.message : err}</p><p style="margin-top:12px;font-size:13px;color:var(--text-muted)">Попробуйте открыть файл через браузер Chrome или Firefox. В Safari может потребоваться включить доступ к локальным файлам.</p></div>`;
 });
 </script>
