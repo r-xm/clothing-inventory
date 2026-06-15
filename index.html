@@ -1231,17 +1231,40 @@ async function importFromSheets() {
   localStorage.setItem('sheetsUrl', url);
 
   let csvUrl = url;
-  const match = url.match(/\/spreadsheets\/d\/([^/]+)/);
+  let sheetId = null;
+  const match = url.match(/\/spreadsheets\/d\/([^/?#]+)/);
   if (match) {
+    sheetId = match[1];
     const gidMatch = url.match(/[#&?]gid=(\d+)/);
     const gid = gidMatch ? gidMatch[1] : '0';
-    csvUrl = `https://docs.google.com/spreadsheets/d/${match[1]}/gviz/tq?tqx=out:csv&gid=${gid}`;
+    csvUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&gid=${gid}`;
   }
 
+  const tryFetch = async (u) => {
+    const r = await fetch(u);
+    if (!r.ok) throw new Error(`${r.status}`);
+    return r.text();
+  };
+
   try {
-    const resp = await fetch(csvUrl);
-    if (!resp.ok) throw new Error(`Ошибка загрузки: ${resp.status}`);
-    const text = await resp.text();
+    let text;
+    try {
+      text = await tryFetch(csvUrl);
+    } catch (e1) {
+      // fallback: pub URL
+      if (sheetId) {
+        const gidMatch = url.match(/[#&?]gid=(\d+)/);
+        const gid = gidMatch ? gidMatch[1] : '0';
+        const pubUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/pub?output=csv&gid=${gid}`;
+        try {
+          text = await tryFetch(pubUrl);
+        } catch (e2) {
+          throw new Error(`Ошибка ${e1.message}. Убедитесь что таблица открыта: Поделиться → Все, у кого есть ссылка → Читатель`);
+        }
+      } else {
+        throw new Error(`Ошибка загрузки: ${e1.message}`);
+      }
+    }
     const rows = parseCSV(text);
     if (!rows.length) { status.style.color='var(--danger)'; status.textContent = '❌ Нет данных. Проверьте формат таблицы.'; return; }
 
