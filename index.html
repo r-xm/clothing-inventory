@@ -1255,54 +1255,12 @@ async function processImportedCSV(text, status) {
 async function importFromSheets() {
   if (!db) { alert('База данных не готова. Обновите страницу.'); return; }
   const pasteText = document.getElementById('sheets-paste').value.trim();
-  const fileInput = document.getElementById('sheets-file');
-  const url = document.getElementById('sheets-url').value.trim();
   const status = document.getElementById('sheets-status');
-  if (pasteText) {
-    status.style.color = 'var(--text-muted)';
-    status.textContent = '⏳ Обрабатываем данные…';
-    return processImportedCSV(pasteText, status);
-  }
-  if (fileInput.files.length > 0) { return importFromCSVFile(fileInput.files[0]); }
-  if (!url) { alert('Вставьте данные, выберите файл или укажите ссылку'); return; }
-
-  const status = document.getElementById('sheets-status');
+  if (!pasteText) { alert('Вставьте данные из Google Sheets'); return; }
   status.style.color = 'var(--text-muted)';
-  status.textContent = '⏳ Загружаем данные…';
-
-  localStorage.setItem('sheetsUrl', url);
-
-  let csvUrl = url;
-  let sheetId = null;
-  const match = url.match(/\/spreadsheets\/d\/([^/?#]+)/);
-  if (match) {
-    sheetId = match[1];
-    const gidMatch = url.match(/[#&?]gid=(\d+)/);
-    const gid = gidMatch ? gidMatch[1] : '0';
-    csvUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&gid=${gid}`;
-  }
-
-  const tryFetch = async (u) => {
-    const r = await fetch(u);
-    if (!r.ok) throw new Error(`${r.status}`);
-    return r.text();
-  };
-
-  const PROXY = 'https://api.allorigins.win/raw?url=';
-
+  status.textContent = '⏳ Обрабатываем данные…';
   try {
-    let text;
-    try {
-      text = await tryFetch(PROXY + encodeURIComponent(csvUrl));
-    } catch (e1) {
-      // fallback: direct gviz
-      try {
-        text = await tryFetch(csvUrl);
-      } catch (e2) {
-        throw new Error(`Не удалось загрузить данные. Убедитесь что таблица открыта: Поделиться → Все, у кого есть ссылка → Читатель`);
-      }
-    }
-    await processImportedCSV(text, status);
+    await processImportedCSV(pasteText, status);
   } catch(err) {
     status.style.color = 'var(--danger)';
     status.textContent = '❌ ' + (err.message || err);
