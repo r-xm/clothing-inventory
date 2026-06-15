@@ -247,21 +247,12 @@
       <code style="font-size:11px;background:var(--surface);padding:4px 8px;border-radius:4px;display:block;margin-top:6px;word-break:break-all">Артикул | Название | Категория | Размер | Цена | Себестоимость | Количество | Мин.остаток | Описание</code>
     </div>
     <div class="form-group" style="margin-bottom:14px">
-      <label style="font-weight:600">📋 Вставить данные из таблицы</label>
-      <p style="font-size:12px;color:var(--text-muted);margin:4px 0 8px">В Google Sheets выделите все ячейки (Ctrl+A), скопируйте (Ctrl+C) и вставьте сюда:</p>
-      <textarea id="sheets-paste" rows="5" placeholder="Артикул&#9;Название&#9;Категория&#9;..." style="font-size:12px;width:100%;padding:8px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);resize:vertical;font-family:monospace;box-sizing:border-box"></textarea>
+      <label style="font-weight:600">Вставьте данные из Google Sheets</label>
+      <p style="font-size:12px;color:var(--text-muted);margin:4px 0 8px">В таблице нажмите Ctrl+A, затем Ctrl+C — и вставьте сюда:</p>
+      <textarea id="sheets-paste" rows="6" placeholder="Артикул&#9;Название&#9;Категория&#9;..." style="font-size:12px;width:100%;padding:8px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);resize:vertical;font-family:monospace;box-sizing:border-box"></textarea>
     </div>
-    <div style="text-align:center;color:var(--text-muted);font-size:12px;margin:8px 0">— или —</div>
-    <div class="form-group" style="margin-bottom:14px">
-      <label style="font-weight:600">📁 Загрузить CSV-файл</label>
-      <p style="font-size:12px;color:var(--text-muted);margin:4px 0 8px">Файл → Скачать → CSV (.csv)</p>
-      <input type="file" id="sheets-file" accept=".csv,text/csv" style="font-size:13px;width:100%;padding:6px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text)">
-    </div>
-    <div style="text-align:center;color:var(--text-muted);font-size:12px;margin:8px 0">— или —</div>
-    <div class="form-group" style="margin-bottom:14px">
-      <label style="font-weight:600">🔗 Ссылка на таблицу</label>
-      <input type="text" id="sheets-url" placeholder="https://docs.google.com/spreadsheets/d/...">
-    </div>
+    <input type="hidden" id="sheets-file">
+    <input type="hidden" id="sheets-url">
     <div id="sheets-status" style="font-size:13px;margin-bottom:10px;min-height:20px"></div>
     <div class="modal-footer">
       <button class="btn" onclick="closeSheetsModal()">Отмена</button>
