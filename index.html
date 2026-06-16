@@ -384,6 +384,7 @@ let cart = [];
 let sortField = 'name';
 let sortAsc = true;
 let photoDataUrl = null;
+const receiptCache = {};
 
 function openDB() { return Promise.resolve(); }
 
@@ -726,7 +727,9 @@ function closeLightbox() {
 }
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeLightbox(); });
 
-function printReceipt(lines, clientNote, soldAt, title) {
+function printReceipt(key) {
+  const { lines, clientNote, soldAt, title } = receiptCache[key] || {};
+  if (!lines) return;
   const d = new Date(soldAt);
   const dateStr = d.toLocaleDateString('ru-RU', { day:'numeric', month:'long', year:'numeric' });
   const timeStr = d.toLocaleTimeString('ru-RU', { hour:'2-digit', minute:'2-digit' });
@@ -1120,6 +1123,13 @@ function renderReserves() {
       </div>`;
     }).join('');
 
+    receiptCache['res_' + r.id] = {
+      lines: r.lines.map(l => { const it = items.find(i => i.id === l.itemId); return { itemName: it ? it.name : '?', itemSku: it ? it.sku : '', qty: l.qty, price: l.price }; }),
+      clientNote: r.client || '',
+      soldAt: r.createdAt,
+      title: 'Бронь'
+    };
+
     return `<div class="history-item" style="flex-direction:column;align-items:stretch;gap:10px">
       <div style="display:flex;justify-content:space-between;align-items:center">
         <div>
@@ -1131,7 +1141,7 @@ function renderReserves() {
           <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">
             <button class="btn sm primary" onclick="confirmReserve('${r.id}')">✅ Продать</button>
             <button class="btn sm" onclick="editReserve('${r.id}')">✏️ Изменить</button>
-            <button class="btn sm" onclick='printReceipt(${JSON.stringify(r.lines.map(l=>{const it=items.find(i=>i.id===l.itemId);return{itemName:it?it.name:"?",itemSku:it?it.sku:"",qty:l.qty,price:l.price};}))}, ${JSON.stringify(r.client)}, ${r.createdAt}, "Бронь")'>🖨️ Чек</button>
+            <button class="btn sm" onclick="printReceipt('res_${r.id}')">🖨️ Чек</button>
             <button class="btn sm danger" onclick="cancelReserve('${r.id}')">✕ Отменить</button>
           </div>
         </div>
@@ -1235,6 +1245,14 @@ function renderHistory() {
         <span>${formatPrice(l.price)} / шт.</span>
       </div>`
     ).join('');
+
+    receiptCache['sale_' + o.id] = {
+      lines: o.lines.map(l => ({ itemName: l.itemName, itemSku: l.itemSku, qty: l.qty, price: l.price })),
+      clientNote: o.note || '',
+      soldAt: o.soldAt,
+      title: 'Чек о продаже'
+    };
+
     return `<div class="history-item" style="flex-direction:column;align-items:stretch;gap:8px">
       <div style="display:flex;justify-content:space-between;align-items:center">
         <div>
@@ -1244,7 +1262,7 @@ function renderHistory() {
         <div style="text-align:right;flex-shrink:0">
           <div style="font-weight:600;color:var(--success)">${formatPrice(orderTotal)}</div>
           <div class="history-meta">${dateStr}, ${timeStr}</div>
-          <button class="btn sm" style="margin-top:6px" onclick='printReceipt(${JSON.stringify(o.lines.map(l=>({itemName:l.itemName,itemSku:l.itemSku,qty:l.qty,price:l.price})))}, ${JSON.stringify(o.lines[0].note||"")}, ${o.soldAt}, "Чек о продаже")'>🖨️ Чек</button>
+          <button class="btn sm" style="margin-top:6px" onclick="printReceipt('sale_${o.id}')">🖨️ Чек</button>
         </div>
       </div>
       ${o.lines.length > 1 ? `<div style="border-top:0.5px solid var(--border);padding-top:6px">${linesHtml}</div>` : ''}
