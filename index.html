@@ -848,18 +848,29 @@ async function saveItem() {
     updatedAt: Date.now(),
   };
 
-  if (!db) { alert('База данных не готова. Обновите страницу.'); return; }
   try {
     if (editingId) {
       obj.id = editingId;
-      await txPut('items', obj);
+      const idx = items.findIndex(i => i.id === editingId);
+      if (idx !== -1) items[idx] = { ...items[idx], ...obj };
+      renderTable();
+      closeModal();
+      txPut('items', obj).catch(err => { alert('Ошибка сохранения: ' + err.message); loadAll().then(renderTable); });
     } else {
       obj.createdAt = Date.now();
-      await txAdd('items', obj);
+      const tempId = 'tmp_' + Date.now();
+      items.push({ ...obj, id: tempId });
+      renderTable();
+      closeModal();
+      txAdd('items', obj).then(realId => {
+        const i = items.findIndex(x => x.id === tempId);
+        if (i !== -1) items[i].id = realId;
+      }).catch(err => {
+        alert('Ошибка сохранения: ' + err.message);
+        items = items.filter(x => x.id !== tempId);
+        renderTable();
+      });
     }
-    await loadAll();
-    renderTable();
-    closeModal();
   } catch (err) {
     alert('Ошибка сохранения: ' + (err && err.message ? err.message : err));
     console.error(err);
