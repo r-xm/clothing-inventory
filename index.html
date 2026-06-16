@@ -149,7 +149,7 @@
 </style>
 </head>
 <body>
-<header>
+<header style="display:none">
   <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
     <h1>👗 Склад одежды</h1>
     <button class="btn" onclick="doLogout()" style="font-size:12px;padding:5px 12px">Выйти</button>
@@ -161,7 +161,7 @@
     <button class="tab-btn" onclick="showTab('report')">📊 Отчёт</button>
   </div>
 </header>
-<main>
+<main style="display:none">
   <div id="tab-inventory">
     <div class="stats-row" id="stats-row"></div>
     <div class="toolbar">
@@ -237,7 +237,7 @@
 </main>
 
 <!-- Login Screen -->
-<div id="login-screen" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;align-items:center;justify-content:center">
+<div id="login-screen" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:9999;align-items:center;justify-content:center">
   <div style="background:var(--surface);border-radius:16px;padding:36px;width:100%;max-width:360px;box-shadow:0 8px 32px rgba(0,0,0,0.15)">
     <h2 style="margin-bottom:6px;font-size:22px">👗 Учёт одежды</h2>
     <p style="color:var(--text-muted);font-size:13px;margin-bottom:24px">Войдите чтобы продолжить</p>
@@ -679,9 +679,9 @@ function renderTable() {
           ${reservedQty(it.id)>0?`<div style="font-size:11px;color:var(--warn);margin-top:2px">📌 ${reservedQty(it.id)} в брони</div>`:''}
         </td>
         <td><div class="actions">
-          <button class="btn sm primary" onclick="addToCart(${it.id})">В корзину</button>
-          <button class="btn sm" onclick="openEdit(${it.id})">✏️</button>
-          <button class="btn sm danger" onclick="deleteItem(${it.id})">✕</button>
+          <button class="btn sm primary" onclick="addToCart('${it.id}')">В корзину</button>
+          <button class="btn sm" onclick="openEdit('${it.id}')">✏️</button>
+          <button class="btn sm danger" onclick="deleteItem('${it.id}')">✕</button>
         </div></td>
       </tr>`;
     }).join('');
@@ -1077,10 +1077,10 @@ function renderReserves() {
         <div style="text-align:right">
           <div style="font-weight:600;font-size:15px">${formatPrice(total)}</div>
           <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">
-            <button class="btn sm primary" onclick="confirmReserve(${r.id})">✅ Продать</button>
-            <button class="btn sm" onclick="editReserve(${r.id})">✏️ Изменить</button>
+            <button class="btn sm primary" onclick="confirmReserve('${r.id}')">✅ Продать</button>
+            <button class="btn sm" onclick="editReserve('${r.id}')">✏️ Изменить</button>
             <button class="btn sm" onclick='printReceipt(${JSON.stringify(r.lines.map(l=>{const it=items.find(i=>i.id===l.itemId);return{itemName:it?it.name:"?",itemSku:it?it.sku:"",qty:l.qty,price:l.price};}))}, ${JSON.stringify(r.client)}, ${r.createdAt}, "Бронь")'>🖨️ Чек</button>
-            <button class="btn sm danger" onclick="cancelReserve(${r.id})">✕ Отменить</button>
+            <button class="btn sm danger" onclick="cancelReserve('${r.id}')">✕ Отменить</button>
           </div>
         </div>
       </div>
@@ -1308,7 +1308,8 @@ Object.assign(window, {
   confirmReserve, editReserve, cancelReserve, clearHistory,
   openLightbox, closeLightbox, printReceipt,
   openSheetsModal, closeSheetsModal, importFromSheets,
-  renderReport, setRepPeriod, setSort,
+  renderReport, renderTable, renderReserves, renderHistory,
+  setRepPeriod, setSort, previewPhoto,
   doLogin, doLogout,
 });
 
