@@ -385,6 +385,7 @@ let sortField = 'name';
 let sortAsc = true;
 let photoDataUrl = null;
 const receiptCache = {};
+let orderInProgress = false;
 
 function openDB() { return Promise.resolve(); }
 
@@ -1015,8 +1016,10 @@ function clearCart() {
 }
 
 async function confirmOrder() {
+  if (orderInProgress) return;
   if (!cart.length) return;
   if (!db) { alert('База данных не готова. Обновите страницу.'); return; }
+  orderInProgress = true;
 
   for (const c of cart) {
     const it = items.find(i => i.id === c.itemId);
@@ -1052,12 +1055,16 @@ async function confirmOrder() {
     document.getElementById('cart-note').value = '';
   } catch (err) {
     alert('Ошибка: ' + (err && err.message ? err.message : err));
+  } finally {
+    orderInProgress = false;
   }
 }
 
 async function createReserve() {
+  if (orderInProgress) return;
   if (!cart.length) return;
   if (!db) { alert('База данных не готова. Обновите страницу.'); return; }
+  orderInProgress = true;
   const client = document.getElementById('cart-note').value.trim();
   if (!client) { alert('Укажите имя клиента для брони'); document.getElementById('cart-note').focus(); return; }
 
@@ -1086,6 +1093,8 @@ async function createReserve() {
     showTab('reserves');
   } catch(err) {
     alert('Ошибка: ' + (err && err.message ? err.message : err));
+  } finally {
+    orderInProgress = false;
   }
 }
 
