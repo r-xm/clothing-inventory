@@ -337,11 +337,11 @@
         <input type="text" id="f-size" placeholder="S, M, L, XL или свободно">
       </div>
       <div class="form-group">
-        <label>Цена продажи (₽) *</label>
+        <label>Цена продажи (с) *</label>
         <input type="number" id="f-price" placeholder="0" min="0" step="0.01">
       </div>
       <div class="form-group">
-        <label>Себестоимость (₽)</label>
+        <label>Себестоимость (с)</label>
         <input type="number" id="f-cost" placeholder="0" min="0" step="0.01">
       </div>
       <div class="form-group">
@@ -976,7 +976,7 @@ function renderCart() {
     const it = items.find(i => i.id === c.itemId);
     if (!it) return '';
     const img = it.photo
-      ? `<img src="${it.photo}" style="width:36px;height:36px;object-fit:cover;border-radius:6px;flex-shrink:0">`
+      ? `<img src="${it.photo}" onclick="openLightbox('${it.photo}')" style="width:36px;height:36px;object-fit:cover;border-radius:6px;flex-shrink:0;cursor:zoom-in">`
       : `<div style="width:36px;height:36px;border-radius:6px;background:var(--bg);border:0.5px dashed var(--border-strong);flex-shrink:0"></div>`;
     return `<div style="display:flex;align-items:center;gap:8px;padding:8px 16px;border-bottom:0.5px solid var(--border)">
       ${img}
@@ -992,7 +992,7 @@ function renderCart() {
       <div style="width:70px;flex-shrink:0">
         <input type="number" value="${c.price}" min="0" step="1"
           style="width:100%;padding:3px 5px;font-size:12px;border:0.5px solid var(--border-strong);border-radius:5px;background:var(--surface);color:var(--text)"
-          onchange="cartPrice(${idx},this.value)" placeholder="₽">
+          onchange="cartPrice(${idx},this.value)" placeholder="с">
       </div>
       <button onclick="cartRemove(${idx})" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:16px;padding:0 2px">✕</button>
     </div>`;
@@ -1158,7 +1158,7 @@ function renderReserves() {
       const it = items.find(i => i.id === l.itemId);
       if (!it) return '';
       const img = it.photo
-        ? `<img src="${it.photo}" style="width:32px;height:32px;object-fit:cover;border-radius:5px;flex-shrink:0">`
+        ? `<img src="${it.photo}" onclick="openLightbox('${it.photo}')" style="width:32px;height:32px;object-fit:cover;border-radius:5px;flex-shrink:0;cursor:zoom-in">`
         : `<div style="width:32px;height:32px;border-radius:5px;background:var(--bg);border:0.5px dashed var(--border-strong);flex-shrink:0"></div>`;
       return `<div style="display:flex;align-items:center;gap:8px;padding:6px 0">
         ${img}
