@@ -41,8 +41,7 @@
       --warn: #f0c040;
     }
   }
-  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; overscroll-behavior-y: none; }
-  #pull-indicator { position:fixed;top:0;left:0;right:0;z-index:8000;display:flex;align-items:center;justify-content:center;height:0;overflow:hidden;transition:height 0.2s;background:var(--bg);font-size:13px;color:var(--text-muted); }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
 
   header { background: var(--surface); border-bottom: 0.5px solid var(--border); padding: 0 16px; display: flex; align-items: center; justify-content: space-between; height: 52px; position: sticky; top: 0; z-index: 100; gap: 10px; }
   header h1 { font-size: 16px; font-weight: 600; white-space: nowrap; flex-shrink: 0; }
@@ -150,7 +149,6 @@
 </style>
 </head>
 <body>
-<div id="pull-indicator">↓ Обновление...</div>
 <header style="display:none">
   <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
     <h1>👗 Склад одежды</h1>
@@ -1429,36 +1427,6 @@ const loginScreen = document.getElementById('login-screen');
 const mainEl = document.querySelector('main');
 const headerEl = document.querySelector('header');
 const tabsEl = document.querySelector('.tabs');
-
-// Pull-to-refresh
-let pullStartY = 0;
-let pulling = false;
-const pullEl = document.getElementById('pull-indicator');
-document.addEventListener('touchstart', e => {
-  if (window.scrollY === 0) { pullStartY = e.touches[0].clientY; pulling = true; }
-}, { passive: true });
-document.addEventListener('touchmove', e => {
-  if (!pulling) return;
-  const dist = e.touches[0].clientY - pullStartY;
-  if (dist > 0 && dist < 80) pullEl.style.height = dist + 'px';
-}, { passive: true });
-document.addEventListener('touchend', async e => {
-  if (!pulling) return;
-  pulling = false;
-  const dist = e.changedTouches[0].clientY - pullStartY;
-  if (dist > 60) {
-    pullEl.style.height = '44px';
-    pullEl.textContent = '↻ Обновляем...';
-    await loadAll();
-    renderTable();
-    renderStats();
-    renderCart();
-    pullEl.textContent = '✓ Обновлено';
-    setTimeout(() => { pullEl.style.height = '0'; }, 800);
-  } else {
-    pullEl.style.height = '0';
-  }
-});
 
 onAuthStateChanged(auth, async (user) => {
   if (user) {
