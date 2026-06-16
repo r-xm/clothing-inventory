@@ -738,13 +738,12 @@ function printReceipt(key) {
   const total = lines.reduce((s, l) => s + l.qty * l.price, 0);
 
   const rows = lines.map(l => `
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;padding:10px 0;border-bottom:1px dashed #e0e0e0;gap:8px">
-      <div style="flex:1">
-        <div style="font-size:15px;font-weight:500;color:#111">${esc(l.itemName)}</div>
-        ${l.itemSku ? `<div style="font-size:12px;color:#999;margin-top:2px">Арт: ${esc(l.itemSku)}</div>` : ''}
-        <div style="font-size:13px;color:#555;margin-top:2px">${l.qty} шт. × ${Number(l.price).toLocaleString('ru-RU')} ₽</div>
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid #f0f0f0;gap:12px">
+      <div style="flex:1;min-width:0">
+        <div style="font-size:14px;font-weight:600;color:#222;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(l.itemName)}</div>
+        <div style="font-size:12px;color:#aaa;margin-top:2px">${l.qty} шт. × ${Number(l.price).toLocaleString('ru-RU')} ₽</div>
       </div>
-      <div style="font-size:16px;font-weight:700;color:#111;white-space:nowrap">${Number(l.qty * l.price).toLocaleString('ru-RU')} ₽</div>
+      <div style="font-size:15px;font-weight:700;color:#222;white-space:nowrap">${Number(l.qty * l.price).toLocaleString('ru-RU')} ₽</div>
     </div>`).join('');
 
   let overlay = document.getElementById('receipt-overlay');
@@ -752,24 +751,19 @@ function printReceipt(key) {
 
   overlay = document.createElement('div');
   overlay.id = 'receipt-overlay';
-  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9100;display:flex;align-items:center;justify-content:center;padding:16px;box-sizing:border-box';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9100;display:flex;align-items:flex-end;justify-content:center;box-sizing:border-box';
 
   overlay.innerHTML = `
-    <div id="receipt-card" style="background:#fff;border-radius:20px;width:100%;max-width:380px;max-height:90vh;overflow-y:auto;box-shadow:0 8px 40px rgba(0,0,0,0.35);font-family:'Arial',sans-serif">
-      <div style="background:#111;border-radius:20px 20px 0 0;padding:20px 20px 16px;text-align:center">
-        <div style="font-size:28px;margin-bottom:6px">🛍️</div>
-        <div style="color:#fff;font-size:18px;font-weight:700">${esc(title)}</div>
-        <div style="color:#aaa;font-size:13px;margin-top:4px">${dateStr} · ${timeStr}</div>
-        ${clientNote ? `<div style="color:#ddd;font-size:13px;margin-top:6px;background:rgba(255,255,255,0.1);border-radius:8px;padding:6px 12px;display:inline-block">${esc(clientNote)}</div>` : ''}
+    <div id="receipt-card" style="background:#fff;border-radius:24px 24px 0 0;width:100%;max-width:480px;max-height:92vh;overflow-y:auto;font-family:'Arial',sans-serif;padding-bottom:32px">
+      <div style="text-align:center;padding:18px 24px 4px">
+        <div style="width:40px;height:4px;background:#e0e0e0;border-radius:4px;margin:0 auto 16px"></div>
+        <div style="font-size:13px;color:#aaa;margin-bottom:2px">${dateStr} · ${timeStr}</div>
+        <div style="font-size:22px;font-weight:800;color:#111;margin-bottom:${clientNote ? '8px' : '0'}">${Number(total).toLocaleString('ru-RU')} ₽</div>
+        ${clientNote ? `<div style="font-size:13px;color:#888">Клиент: <b style="color:#444">${esc(clientNote)}</b></div>` : ''}
       </div>
-      <div style="padding:4px 20px 0">${rows}</div>
-      <div style="margin:0 20px;padding:14px 0;display:flex;justify-content:space-between;align-items:center;border-top:2px solid #111">
-        <span style="font-size:16px;color:#555;font-weight:600">Итого</span>
-        <span style="font-size:22px;font-weight:800;color:#111">${Number(total).toLocaleString('ru-RU')} ₽</span>
-      </div>
-      <div style="text-align:center;padding:0 20px 20px">
-        <div style="color:#999;font-size:13px;margin-bottom:16px">Спасибо за покупку! 🙏</div>
-        <div style="color:#bbb;font-size:12px">Нажмите в любом месте чтобы закрыть</div>
+      <div style="padding:0 24px">${rows}</div>
+      <div style="padding:20px 24px 0;text-align:center">
+        <div style="font-size:13px;color:#ccc">Нажмите за пределами чтобы закрыть</div>
       </div>
     </div>`;
 
@@ -1188,62 +1182,61 @@ async function confirmReserve(id) {
   if (!confirm(`Подтвердить продажу брони клиента "${r.client}"?`)) return;
 
   const orderId = Date.now();
-  try {
-    for (const l of r.lines) {
-      const it = items.find(i => i.id === l.itemId);
-      if (!it) continue;
-      it.qty -= l.qty;
-      it.updatedAt = Date.now();
-      await txPut('items', it);
-      await txAdd('sales', {
-        orderId,
-        itemId: it.id,
-        itemName: it.name,
-        itemSku: it.sku,
-        qty: l.qty,
-        price: l.price,
-        total: l.qty * l.price,
-        note: `Бронь: ${r.client}`,
-        soldAt: orderId,
-      });
-    }
-    r.status = 'confirmed';
-    r.confirmedAt = Date.now();
-    await txPut('reserves', r);
-    await loadAll();
-    renderReserves();
-    renderStats();
-  } catch(err) {
-    alert('Ошибка: ' + (err && err.message ? err.message : err));
+  // Оптимистично обновляем локально
+  for (const l of r.lines) {
+    const it = items.find(i => i.id === l.itemId);
+    if (it) it.qty -= l.qty;
+    sales.push({ id: 'tmp_' + orderId + '_' + l.itemId, orderId, itemId: l.itemId, itemName: it?.name, itemSku: it?.sku, qty: l.qty, price: l.price, total: l.qty * l.price, note: r.client, soldAt: orderId });
   }
+  r.status = 'confirmed';
+  r.confirmedAt = orderId;
+  renderReserves();
+  renderTable();
+  renderStats();
+
+  (async () => {
+    try {
+      for (const l of r.lines) {
+        const it = items.find(i => i.id === l.itemId);
+        if (it) txPut('items', it);
+        await txAdd('sales', { orderId, itemId: l.itemId, itemName: it?.name, itemSku: it?.sku, qty: l.qty, price: l.price, total: l.qty * l.price, note: r.client, soldAt: orderId });
+      }
+      txPut('reserves', r);
+      sales = sales.filter(s => !String(s.id).startsWith('tmp_'));
+    } catch(err) {
+      alert('Ошибка: ' + err.message);
+      loadAll().then(() => { renderReserves(); renderTable(); renderStats(); });
+    }
+  })();
 }
 
 async function editReserve(id) {
   const r = reserves.find(x => x.id === id);
   if (!r) return;
+  // Оптимистично убираем из броней
   r.status = 'cancelled';
   r.cancelledAt = Date.now();
-  await txPut('reserves', r);
-  await loadAll();
-
   cart = r.lines.map(l => ({ itemId: l.itemId, qty: l.qty, price: l.price }));
   document.getElementById('cart-note').value = r.client;
-  showTab('inventory');
+  showTab('cart');
   renderTable();
   renderCart();
+  // Сохраняем в фоне
+  txPut('reserves', r).catch(err => alert('Ошибка: ' + err.message));
 }
 
 async function cancelReserve(id) {
   const r = reserves.find(x => x.id === id);
   if (!r) return;
   if (!confirm(`Отменить бронь клиента "${r.client}"?`)) return;
+  // Оптимистично убираем
   r.status = 'cancelled';
   r.cancelledAt = Date.now();
-  await txPut('reserves', r);
-  await loadAll();
   renderReserves();
   renderTable();
   renderStats();
+  // Сохраняем в фоне
+  txPut('reserves', r).catch(err => alert('Ошибка: ' + err.message));
 }
 
 function renderHistory() {
