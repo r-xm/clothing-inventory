@@ -740,14 +740,14 @@ function printReceipt(key) {
   const total = lines.reduce((s, l) => s + l.qty * l.price, 0);
 
   const rows = lines.map((l, i) => `
-    <tr>
-      <td style="padding:8px 0 4px;font-size:13px;color:#222;font-weight:600;vertical-align:top" colspan="2">${i+1}. ${esc(l.itemName)}</td>
+    <tr style="background:#f5f4f0">
+      <td style="background:#f5f4f0;padding:8px 0 4px;font-size:13px;color:#111;font-weight:600;vertical-align:top" colspan="2">${i+1}. ${esc(l.itemName)}</td>
     </tr>
-    <tr>
-      <td style="padding:0 0 8px;font-size:12px;color:#777;vertical-align:top">${l.itemSku ? `Арт: ${esc(l.itemSku)} · ` : ''}${l.qty} шт. × ${Number(l.price).toLocaleString('ru-RU')} с</td>
-      <td style="padding:0 0 8px;font-size:13px;color:#222;font-weight:700;text-align:right;white-space:nowrap;vertical-align:top">${Number(l.qty * l.price).toLocaleString('ru-RU')} с</td>
+    <tr style="background:#f5f4f0">
+      <td style="background:#f5f4f0;padding:0 0 8px;font-size:12px;color:#666;vertical-align:top">${l.itemSku ? `Арт: ${esc(l.itemSku)} · ` : ''}${l.qty} шт. × ${Number(l.price).toLocaleString('ru-RU')} с</td>
+      <td style="background:#f5f4f0;padding:0 0 8px;font-size:13px;color:#111;font-weight:700;text-align:right;white-space:nowrap;vertical-align:top">${Number(l.qty * l.price).toLocaleString('ru-RU')} с</td>
     </tr>
-    <tr><td colspan="2" style="border-top:1px dashed #ccc;padding:0"></td></tr>`).join('');
+    <tr style="background:#f5f4f0"><td colspan="2" style="background:#f5f4f0;border-top:1px dashed #bbb;padding:0"></td></tr>`).join('');
 
   let overlay = document.getElementById('receipt-overlay');
   if (overlay) overlay.remove();
@@ -757,23 +757,23 @@ function printReceipt(key) {
   overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:9100;display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box';
 
   overlay.innerHTML = `
-    <div id="receipt-card" style="background:#f0efeb;border-radius:4px;width:100%;max-width:340px;max-height:92vh;overflow-y:auto;font-family:Arial,sans-serif;box-shadow:0 8px 32px rgba(0,0,0,0.25)">
-      <div style="padding:28px 28px 16px;text-align:center;border-bottom:1px solid #ddd">
-        <div style="font-size:22px;font-weight:900;letter-spacing:2px;color:#111;text-transform:uppercase">mtb_buyer</div>
-        <div style="font-size:12px;color:#777;margin-top:6px">${dateStr}&nbsp;&nbsp;${timeStr}</div>
-        ${clientNote ? `<div style="font-size:12px;color:#555;margin-top:4px">Клиент: ${esc(clientNote)}</div>` : ''}
+    <div id="receipt-card" style="background:#f5f4f0;border-radius:4px;width:100%;max-width:340px;font-family:Arial,sans-serif;box-shadow:0 8px 32px rgba(0,0,0,0.3)">
+      <div style="background:#f5f4f0;padding:28px 28px 14px;text-align:center;border-bottom:1px solid #ccc">
+        <div style="font-size:22px;font-weight:900;letter-spacing:2px;color:#111;text-transform:uppercase">MTB_BUYER</div>
+        <div style="font-size:12px;color:#666;margin-top:6px">${dateStr}&nbsp;&nbsp;${timeStr}</div>
+        ${clientNote ? `<div style="font-size:12px;color:#444;margin-top:4px">Клиент: ${esc(clientNote)}</div>` : ''}
       </div>
-      <div style="padding:8px 28px">
-        <table style="width:100%;border-collapse:collapse">
+      <div style="background:#f5f4f0;padding:8px 28px">
+        <table style="width:100%;border-collapse:collapse;background:#f5f4f0">
           <tbody>${rows}</tbody>
         </table>
       </div>
-      <div style="margin:0 28px;padding:12px 0;border-top:2px solid #aaa;border-bottom:2px solid #aaa;display:flex;justify-content:space-between;align-items:center">
+      <div style="background:#f5f4f0;margin:0 28px;padding:12px 0;border-top:2px solid #999;border-bottom:2px solid #999;display:flex;justify-content:space-between;align-items:center">
         <span style="font-size:15px;font-weight:800;color:#111;letter-spacing:1px">ИТОГО:</span>
         <span style="font-size:16px;font-weight:800;color:#111">${Number(total).toLocaleString('ru-RU')} с</span>
       </div>
-      <div style="padding:16px 28px 28px;text-align:center">
-        <div style="font-size:13px;color:#666;letter-spacing:0.5px">Спасибо за покупку!</div>
+      <div style="background:#f5f4f0;padding:16px 28px 28px;text-align:center">
+        <div style="font-size:13px;color:#555;letter-spacing:0.5px">Спасибо за покупку!</div>
       </div>
     </div>`;
 
