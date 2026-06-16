@@ -373,7 +373,7 @@
 <script type="module">
 // Firebase
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
-import { getFirestore, collection, getDocs, addDoc, setDoc, deleteDoc, doc, writeBatch, enableIndexedDbPersistence } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+import { getFirestore, initializeFirestore, persistentLocalCache, collection, getDocs, addDoc, setDoc, deleteDoc, doc, writeBatch } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
 
 const firebaseConfig = {
@@ -385,9 +385,8 @@ const firebaseConfig = {
   appId: "1:770848140816:web:b464215d53cae222efa495"
 };
 const fbApp = initializeApp(firebaseConfig);
-const db = getFirestore(fbApp);
+const db = initializeFirestore(fbApp, { localCache: persistentLocalCache() });
 const auth = getAuth(fbApp);
-enableIndexedDbPersistence(db).catch(() => {});
 
 let items = [];
 let sales = [];
@@ -1423,7 +1422,7 @@ Object.assign(window, {
   openSheetsModal, closeSheetsModal, importFromSheets,
   renderReport, renderTable, renderReserves, renderHistory,
   setRepPeriod, setSort, previewPhoto,
-  doLogin, doLogout,
+  doLogin, doLogout, receiptCache,
 });
 
 const loginScreen = document.getElementById('login-screen');
