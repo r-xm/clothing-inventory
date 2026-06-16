@@ -144,7 +144,6 @@
     .item-cards { display: flex; }
     .history-item { flex-direction: column; align-items: flex-start; gap: 8px; }
     #cart-panel { left: 0 !important; right: 0 !important; width: 100% !important; max-width: 100% !important; }
-    main { padding-bottom: 80px; }
     .rep-grid { grid-template-columns: 1fr !important; }
   }
 </style>
@@ -160,6 +159,7 @@
     <button class="tab-btn" onclick="showTab('reserves')">Брони <span id="reserve-badge" style="display:none;background:#e74c3c;color:#fff;border-radius:10px;padding:1px 6px;font-size:11px;margin-left:4px"></span></button>
     <button class="tab-btn" onclick="showTab('history')">Продажи</button>
     <button class="tab-btn" onclick="showTab('report')">📊 Отчёт</button>
+    <button class="tab-btn" id="cart-tab-btn" onclick="showTab('cart')" style="display:none">🛒 Корзина <span id="cart-badge" style="background:#e74c3c;color:#fff;border-radius:10px;padding:1px 6px;font-size:11px;margin-left:4px"></span></button>
   </div>
 </header>
 <main style="display:none">
@@ -233,6 +233,21 @@
     <div class="history-list" id="history-list"></div>
     <div id="hist-empty" class="empty" style="display:none">
       <p>Продаж пока нет.</p>
+    </div>
+  </div>
+  <div id="tab-cart" style="display:none">
+    <div id="cart-items-tab"></div>
+    <div id="cart-empty-tab" class="empty" style="display:none"><p>Корзина пуста.</p></div>
+    <div id="cart-footer-tab" style="display:none;padding:12px 0">
+      <div style="display:flex;justify-content:space-between;margin-bottom:10px;font-size:14px;">
+        <span style="color:var(--text-muted)">Итого:</span>
+        <strong id="cart-total" style="font-size:16px"></strong>
+      </div>
+      <input type="text" id="cart-note" placeholder="Покупатель / комментарий" style="margin-bottom:8px;font-size:13px;">
+      <div style="display:flex;gap:8px">
+        <button class="btn" style="flex:1" onclick="createReserve()">📌 Забронировать</button>
+        <button class="btn primary" style="flex:1" onclick="confirmOrder()">✅ Продать</button>
+      </div>
     </div>
   </div>
 </main>
@@ -342,25 +357,6 @@
   <img id="lightbox-img" style="max-width:90vw;max-height:90vh;border-radius:10px;object-fit:contain;">
 </div>
 
-<!-- Cart Panel -->
-<div id="cart-panel" style="display:none;position:fixed;bottom:0;right:0;width:340px;max-height:80vh;background:var(--surface);border:0.5px solid var(--border);border-radius:14px 0 0 0;box-shadow:0 -2px 24px rgba(0,0,0,0.12);z-index:150;display:none;flex-direction:column;">
-  <div style="padding:14px 16px;border-bottom:0.5px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
-    <strong style="font-size:15px">🛒 Корзина</strong>
-    <button class="btn sm" onclick="clearCart()">Очистить</button>
-  </div>
-  <div id="cart-items" style="overflow-y:auto;flex:1;padding:8px 0;"></div>
-  <div style="padding:12px 16px;border-top:0.5px solid var(--border);">
-    <div style="display:flex;justify-content:space-between;margin-bottom:10px;font-size:14px;">
-      <span style="color:var(--text-muted)">Итого:</span>
-      <strong id="cart-total" style="font-size:16px"></strong>
-    </div>
-    <input type="text" id="cart-note" placeholder="Покупатель / комментарий" style="margin-bottom:8px;font-size:13px;">
-    <div style="display:flex;gap:8px">
-      <button class="btn" style="flex:1" onclick="createReserve()">📌 Забронировать</button>
-      <button class="btn primary" style="flex:1" onclick="confirmOrder()">✅ Продать</button>
-    </div>
-  </div>
-</div>
 
 <script type="module">
 // Firebase
@@ -426,11 +422,12 @@ async function loadAll() {
 }
 
 function showTab(t) {
-  ['inventory','reserves','history','report'].forEach(id => {
+  ['inventory','reserves','history','report','cart'].forEach(id => {
     document.getElementById('tab-'+id).style.display = t === id ? '' : 'none';
   });
-  document.querySelectorAll('.tab-btn').forEach((b, i) => {
-    b.classList.toggle('active', ['inventory','reserves','history','report'][i] === t);
+  document.querySelectorAll('.tab-btn').forEach(b => {
+    const tab = b.getAttribute('onclick')?.match(/showTab\('(\w+)'\)/)?.[1];
+    b.classList.toggle('active', tab === t);
   });
   if (t === 'history') renderHistory();
   if (t === 'reserves') renderReserves();
@@ -897,14 +894,45 @@ function addToCart(id) {
   if (existing) existing.qty++;
   else cart.push({ itemId: id, qty: 1, price: it.price || 0 });
   renderCart();
+  showCartToast();
+}
+
+function showCartToast() {
+  let toast = document.getElementById('cart-toast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'cart-toast';
+    toast.style.cssText = 'position:fixed;top:70px;left:50%;transform:translateX(-50%);background:#222;color:#fff;padding:10px 18px;border-radius:10px;font-size:14px;z-index:9000;display:flex;align-items:center;gap:12px;box-shadow:0 4px 16px rgba(0,0,0,0.25);white-space:nowrap';
+    document.body.appendChild(toast);
+  }
+  const total = cart.reduce((s, c) => s + c.qty, 0);
+  toast.innerHTML = `✅ Добавлено (${total} шт.) <button onclick="showTab('cart')" style="background:#fff;color:#222;border:none;border-radius:6px;padding:4px 10px;font-size:13px;cursor:pointer;font-weight:600">Перейти в корзину →</button>`;
+  toast.style.display = 'flex';
+  clearTimeout(toast._timer);
+  toast._timer = setTimeout(() => { toast.style.display = 'none'; }, 3000);
 }
 
 function renderCart() {
-  const panel = document.getElementById('cart-panel');
-  if (!cart.length) { panel.style.display = 'none'; return; }
-  panel.style.display = 'flex';
+  const tabBtn = document.getElementById('cart-tab-btn');
+  const badge = document.getElementById('cart-badge');
+  const totalCount = cart.reduce((s, c) => s + c.qty, 0);
+  if (!cart.length) {
+    tabBtn.style.display = 'none';
+    document.getElementById('cart-empty-tab').style.display = '';
+    document.getElementById('cart-footer-tab').style.display = 'none';
+    document.getElementById('cart-items-tab').innerHTML = '';
+    return;
+  }
+  tabBtn.style.display = '';
+  badge.textContent = totalCount;
+  document.getElementById('cart-empty-tab').style.display = 'none';
+  document.getElementById('cart-footer-tab').style.display = '';
 
-  document.getElementById('cart-items').innerHTML = cart.map((c, idx) => {
+  document.getElementById('cart-items-tab').innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <strong style="font-size:16px">🛒 Корзина</strong>
+      <button class="btn sm danger" onclick="clearCart()">Очистить</button>
+    </div>` + cart.map((c, idx) => {
     const it = items.find(i => i.id === c.itemId);
     if (!it) return '';
     const img = it.photo
@@ -932,6 +960,10 @@ function renderCart() {
 
   const total = cart.reduce((s, c) => s + c.qty * c.price, 0);
   document.getElementById('cart-total').textContent = formatPrice(total);
+  // Auto-navigate to cart tab when it's already open
+  if (document.getElementById('tab-cart').style.display !== 'none') {
+    // already on cart tab, nothing to do
+  }
 }
 
 function cartQty(idx, delta) {
@@ -958,6 +990,7 @@ function cartRemove(idx) {
 function clearCart() {
   cart = [];
   renderCart();
+  showTab('inventory');
 }
 
 async function confirmOrder() {
@@ -1305,7 +1338,7 @@ async function doLogout() {
 // Expose functions to global scope
 Object.assign(window, {
   showTab, openAddModal, openEdit, saveItem, closeModal, deleteItem,
-  addToCart, cartQty, cartPrice, cartRemove, clearCart, confirmOrder, createReserve,
+  addToCart, cartQty, cartPrice, cartRemove, clearCart, confirmOrder, showCartToast, createReserve,
   confirmReserve, editReserve, cancelReserve, clearHistory,
   openLightbox, closeLightbox, printReceipt,
   openSheetsModal, closeSheetsModal, importFromSheets,
