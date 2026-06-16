@@ -741,11 +741,11 @@ function printReceipt(key) {
 
   const rows = lines.map((l, i) => `
     <tr style="background:#f5f4f0">
-      <td style="background:#f5f4f0;padding:8px 0 4px;font-size:13px;color:#111;font-weight:600;vertical-align:top" colspan="2">${i+1}. ${esc(l.itemName)}</td>
+      <td style="background:#f5f4f0;padding:8px 0 2px;font-size:13px;color:#111;font-weight:600;word-break:break-word;white-space:normal">${i+1}. ${esc(l.itemName)}</td>
+      <td style="background:#f5f4f0;padding:8px 0 2px;font-size:13px;color:#111;font-weight:700;text-align:right;white-space:nowrap;vertical-align:top;min-width:70px">${Number(l.qty * l.price).toLocaleString('ru-RU')} с</td>
     </tr>
     <tr style="background:#f5f4f0">
-      <td style="background:#f5f4f0;padding:0 0 8px;font-size:12px;color:#666;vertical-align:top">${l.itemSku ? `Арт: ${esc(l.itemSku)} · ` : ''}${l.qty} шт. × ${Number(l.price).toLocaleString('ru-RU')} с</td>
-      <td style="background:#f5f4f0;padding:0 0 8px;font-size:13px;color:#111;font-weight:700;text-align:right;white-space:nowrap;vertical-align:top">${Number(l.qty * l.price).toLocaleString('ru-RU')} с</td>
+      <td colspan="2" style="background:#f5f4f0;padding:0 0 8px;font-size:12px;color:#666">${l.itemSku ? `Арт: ${esc(l.itemSku)} · ` : ''}${l.qty} шт. × ${Number(l.price).toLocaleString('ru-RU')} с</td>
     </tr>
     <tr style="background:#f5f4f0"><td colspan="2" style="background:#f5f4f0;border-top:1px dashed #bbb;padding:0"></td></tr>`).join('');
 
