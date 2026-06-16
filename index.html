@@ -361,7 +361,7 @@
 <script type="module">
 // Firebase
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
-import { getFirestore, collection, getDocs, addDoc, setDoc, deleteDoc, doc, writeBatch } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+import { getFirestore, collection, getDocs, addDoc, setDoc, deleteDoc, doc, writeBatch, enableIndexedDbPersistence } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
 
 const firebaseConfig = {
@@ -375,6 +375,7 @@ const firebaseConfig = {
 const fbApp = initializeApp(firebaseConfig);
 const db = getFirestore(fbApp);
 const auth = getAuth(fbApp);
+enableIndexedDbPersistence(db).catch(() => {});
 
 let items = [];
 let sales = [];
@@ -1018,84 +1019,105 @@ function clearCart() {
 async function confirmOrder() {
   if (orderInProgress) return;
   if (!cart.length) return;
-  if (!db) { alert('База данных не готова. Обновите страницу.'); return; }
   orderInProgress = true;
 
   for (const c of cart) {
     const it = items.find(i => i.id === c.itemId);
     if (!it) continue;
-    if (c.qty > it.qty) { alert(`"${it.name}": на складе только ${it.qty} шт., а в корзине ${c.qty}.`); return; }
+    if (c.qty > it.qty) {
+      alert(`"${it.name}": на складе только ${it.qty} шт., а в корзине ${c.qty}.`);
+      orderInProgress = false;
+      return;
+    }
   }
 
   const note = document.getElementById('cart-note').value.trim();
   const orderId = Date.now();
+  const savedCart = [...cart];
 
-  try {
-    for (const c of cart) {
-      const it = items.find(i => i.id === c.itemId);
-      it.qty -= c.qty;
-      it.updatedAt = Date.now();
-      await txPut('items', it);
-      await txAdd('sales', {
-        orderId,
-        itemId: it.id,
-        itemName: it.name,
-        itemSku: it.sku,
-        qty: c.qty,
-        price: c.price,
-        total: c.qty * c.price,
-        note,
-        soldAt: orderId,
-      });
-    }
-    cart = [];
-    await loadAll();
-    renderTable();
-    renderCart();
-    document.getElementById('cart-note').value = '';
-  } catch (err) {
-    alert('Ошибка: ' + (err && err.message ? err.message : err));
-  } finally {
-    orderInProgress = false;
+  // Оптимистично: обновляем локально и показываем сразу
+  for (const c of savedCart) {
+    const it = items.find(i => i.id === c.itemId);
+    if (it) it.qty -= c.qty;
+    sales.push({ id: 'tmp_' + orderId + '_' + c.itemId, orderId, itemId: c.itemId, itemName: it?.name, itemSku: it?.sku, qty: c.qty, price: c.price, total: c.qty * c.price, note, soldAt: orderId });
   }
+  cart = [];
+  document.getElementById('cart-note').value = '';
+  renderTable();
+  renderCart();
+  renderStats();
+  showTab('inventory');
+
+  // Сохраняем в Firebase в фоне
+  (async () => {
+    try {
+      for (const c of savedCart) {
+        const it = items.find(i => i.id === c.itemId);
+        if (it) { it.updatedAt = Date.now(); txPut('items', it); }
+        await txAdd('sales', { orderId, itemId: c.itemId, itemName: it?.name, itemSku: it?.sku, qty: c.qty, price: c.price, total: c.qty * c.price, note, soldAt: orderId });
+      }
+      // Убираем временные записи и подгружаем реальные
+      sales = sales.filter(s => !String(s.id).startsWith('tmp_'));
+      const realSales = await getDocs(collection(db, 'sales'));
+      realSales.docs.forEach(d => { if (!sales.find(s => s.id === d.id)) sales.push({ id: d.id, ...d.data() }); });
+    } catch (err) {
+      alert('Ошибка сохранения: ' + err.message);
+      loadAll().then(() => { renderTable(); renderCart(); });
+    } finally {
+      orderInProgress = false;
+    }
+  })();
 }
 
 async function createReserve() {
   if (orderInProgress) return;
   if (!cart.length) return;
-  if (!db) { alert('База данных не готова. Обновите страницу.'); return; }
   orderInProgress = true;
+
   const client = document.getElementById('cart-note').value.trim();
-  if (!client) { alert('Укажите имя клиента для брони'); document.getElementById('cart-note').focus(); return; }
+  if (!client) {
+    alert('Укажите имя клиента для брони');
+    document.getElementById('cart-note').focus();
+    orderInProgress = false;
+    return;
+  }
 
   for (const c of cart) {
     const it = items.find(i => i.id === c.itemId);
     if (!it) continue;
     if (c.qty > availableQty(it)) {
       alert(`"${it.name}": доступно только ${availableQty(it)} шт.`);
+      orderInProgress = false;
       return;
     }
   }
 
-  try {
-    await txAdd('reserves', {
-      client,
-      lines: cart.map(c => ({ itemId: c.itemId, qty: c.qty, price: c.price })),
-      status: 'active',
-      createdAt: Date.now(),
-    });
-    cart = [];
-    document.getElementById('cart-note').value = '';
-    await loadAll();
-    renderTable();
-    renderCart();
-    renderStats();
-    showTab('reserves');
-  } catch(err) {
-    alert('Ошибка: ' + (err && err.message ? err.message : err));
-  } finally {
-    orderInProgress = false;
-  }
+  const tempId = 'tmp_' + Date.now();
+  const newReserve = { id: tempId, client, lines: cart.map(c => ({ itemId: c.itemId, qty: c.qty, price: c.price })), status: 'active', createdAt: Date.now() };
+
+  // Оптимистично: показываем сразу
+  reserves.push(newReserve);
+  cart = [];
+  document.getElementById('cart-note').value = '';
+  renderTable();
+  renderCart();
+  renderStats();
+  showTab('reserves');
+
+  // Сохраняем в Firebase в фоне
+  (async () => {
+    try {
+      const realId = await txAdd('reserves', { client: newReserve.client, lines: newReserve.lines, status: 'active', createdAt: newReserve.createdAt });
+      const idx = reserves.findIndex(r => r.id === tempId);
+      if (idx !== -1) reserves[idx].id = realId;
+    } catch(err) {
+      alert('Ошибка сохранения: ' + err.message);
+      reserves = reserves.filter(r => r.id !== tempId);
+      renderTable();
+    } finally {
+      orderInProgress = false;
+    }
+  })();
 }
 
 function renderReserves() {
