@@ -771,9 +771,9 @@ function printReceipt(key) {
       </div>
     </div>`;
 
-  overlay.addEventListener('click', () => overlay.remove());
-  document.getElementById('receipt-card').addEventListener('click', e => e.stopPropagation());
   document.body.appendChild(overlay);
+  overlay.addEventListener('click', () => overlay.remove());
+  overlay.querySelector('#receipt-card').addEventListener('click', e => e.stopPropagation());
 }
 
 function esc(s) {
