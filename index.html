@@ -733,37 +733,43 @@ function printReceipt(key) {
   const { lines, clientNote, soldAt, title } = receiptCache[key] || {};
   if (!lines) return;
   const d = new Date(soldAt);
-  const dateStr = d.toLocaleDateString('ru-RU', { day:'numeric', month:'long', year:'numeric' });
+  const days = ['Вс','Пн','Вт','Ср','Чт','Пт','Сб'];
+  const months = ['01','02','03','04','05','06','07','08','09','10','11','12'];
+  const dateStr = `${days[d.getDay()]}  ${String(d.getDate()).padStart(2,'0')}/${months[d.getMonth()]}/${d.getFullYear()}`;
   const timeStr = d.toLocaleTimeString('ru-RU', { hour:'2-digit', minute:'2-digit' });
   const total = lines.reduce((s, l) => s + l.qty * l.price, 0);
 
-  const rows = lines.map(l => `
-    <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid #f0f0f0;gap:12px">
-      <div style="flex:1;min-width:0">
-        <div style="font-size:14px;font-weight:600;color:#222;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(l.itemName)}</div>
-        <div style="font-size:12px;color:#aaa;margin-top:2px">${l.qty} шт. × ${Number(l.price).toLocaleString('ru-RU')} ₽</div>
-      </div>
-      <div style="font-size:15px;font-weight:700;color:#222;white-space:nowrap">${Number(l.qty * l.price).toLocaleString('ru-RU')} ₽</div>
-    </div>`).join('');
+  const rows = lines.map((l, i) => `
+    <tr>
+      <td style="padding:7px 0;font-size:13px;color:#333;vertical-align:top">${i+1}. ${esc(l.itemName)}${l.qty > 1 ? ` (${l.qty} шт.)` : ''}</td>
+      <td style="padding:7px 0;font-size:13px;color:#333;text-align:right;white-space:nowrap;vertical-align:top">${Number(l.qty * l.price).toLocaleString('ru-RU')} с</td>
+    </tr>`).join('');
 
   let overlay = document.getElementById('receipt-overlay');
   if (overlay) overlay.remove();
 
   overlay = document.createElement('div');
   overlay.id = 'receipt-overlay';
-  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9100;display:flex;align-items:flex-end;justify-content:center;box-sizing:border-box';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:9100;display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box';
 
   overlay.innerHTML = `
-    <div id="receipt-card" style="background:#fff;border-radius:24px 24px 0 0;width:100%;max-width:480px;max-height:92vh;overflow-y:auto;font-family:'Arial',sans-serif;padding-bottom:32px">
-      <div style="text-align:center;padding:18px 24px 4px">
-        <div style="width:40px;height:4px;background:#e0e0e0;border-radius:4px;margin:0 auto 16px"></div>
-        <div style="font-size:13px;color:#aaa;margin-bottom:2px">${dateStr} · ${timeStr}</div>
-        <div style="font-size:22px;font-weight:800;color:#111;margin-bottom:${clientNote ? '8px' : '0'}">${Number(total).toLocaleString('ru-RU')} ₽</div>
-        ${clientNote ? `<div style="font-size:13px;color:#888">Клиент: <b style="color:#444">${esc(clientNote)}</b></div>` : ''}
+    <div id="receipt-card" style="background:#f0efeb;border-radius:4px;width:100%;max-width:340px;max-height:92vh;overflow-y:auto;font-family:Arial,sans-serif;box-shadow:0 8px 32px rgba(0,0,0,0.25)">
+      <div style="padding:28px 28px 16px;text-align:center;border-bottom:1px solid #ddd">
+        <div style="font-size:22px;font-weight:900;letter-spacing:2px;color:#111;text-transform:uppercase">mtb_buyer</div>
+        <div style="font-size:12px;color:#777;margin-top:6px">${dateStr}&nbsp;&nbsp;${timeStr}</div>
+        ${clientNote ? `<div style="font-size:12px;color:#555;margin-top:4px">Клиент: ${esc(clientNote)}</div>` : ''}
       </div>
-      <div style="padding:0 24px">${rows}</div>
-      <div style="padding:20px 24px 0;text-align:center">
-        <div style="font-size:13px;color:#ccc">Нажмите за пределами чтобы закрыть</div>
+      <div style="padding:8px 28px">
+        <table style="width:100%;border-collapse:collapse">
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+      <div style="margin:0 28px;padding:12px 0;border-top:2px solid #aaa;border-bottom:2px solid #aaa;display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:15px;font-weight:800;color:#111;letter-spacing:1px">ИТОГО:</span>
+        <span style="font-size:16px;font-weight:800;color:#111">${Number(total).toLocaleString('ru-RU')} с</span>
+      </div>
+      <div style="padding:16px 28px 28px;text-align:center">
+        <div style="font-size:13px;color:#666;letter-spacing:0.5px">Спасибо за покупку!</div>
       </div>
     </div>`;
 
