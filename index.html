@@ -23,6 +23,18 @@
     --warn: #9a6f00;
     --radius: 10px;
   }
+  [data-theme="dark"] {
+    --bg: #1a1a1a; --surface: #252525; --border: rgba(255,255,255,0.12); --border-strong: rgba(255,255,255,0.25);
+    --text: #f0eeea; --text-muted: #999; --accent: #7a9bff; --accent-bg: #1e2a4a;
+    --danger: #e57373; --danger-bg: #3a1a1a; --success: #5dbf82; --success-bg: #1a3a2a;
+    --warn-bg: #2a2410; --warn: #f0c040;
+  }
+  [data-theme="light"] {
+    --bg: #f5f4f0; --surface: #ffffff; --border: rgba(0,0,0,0.12); --border-strong: rgba(0,0,0,0.25);
+    --text: #1a1a1a; --text-muted: #666; --accent: #3a5fd4; --accent-bg: #eef1fb;
+    --danger: #c0392b; --danger-bg: #fdf0ef; --success: #1a7a4a; --success-bg: #eaf4ee;
+    --warn-bg: #fef9e7; --warn: #9a6f00;
+  }
   @media (prefers-color-scheme: dark) {
     :root {
       --bg: #1a1a1a;
@@ -158,8 +170,11 @@
 <body>
 <header style="display:none">
   <div class="header-top">
-    <h1>👗 Склад одежды</h1>
-    <button class="btn" onclick="doLogout()" style="font-size:12px;padding:5px 12px">Выйти</button>
+    <h1 id="shop-title">👗 Склад одежды</h1>
+    <div style="display:flex;gap:6px">
+      <button class="btn" onclick="openSettings()" style="font-size:16px;padding:5px 10px">⚙️</button>
+      <button class="btn" onclick="doLogout()" style="font-size:12px;padding:5px 12px">Выйти</button>
+    </div>
   </div>
   <div class="tabs">
     <button class="tab-btn active" onclick="showTab('inventory')">Остатки</button>
@@ -235,7 +250,6 @@
   <div id="tab-history" style="display:none">
     <div class="toolbar">
       <input class="search-box" type="text" placeholder="Поиск в продажах…" id="hist-search" oninput="renderHistory()">
-      <button class="btn danger sm" onclick="clearHistory()" style="margin-left:auto">Очистить историю</button>
     </div>
     <div class="history-list" id="history-list"></div>
     <div id="hist-empty" class="empty" style="display:none">
@@ -258,6 +272,47 @@
     </div>
   </div>
 </main>
+
+<!-- Settings Modal -->
+<div class="overlay" id="settings-overlay" style="display:none" onclick="if(event.target===this)closeSettings()">
+  <div class="modal" style="max-width:420px">
+    <h2>⚙️ Настройки</h2>
+
+    <div style="margin-top:20px">
+      <label style="font-size:13px;color:var(--text-muted);font-weight:600;display:block;margin-bottom:8px">🏪 НАЗВАНИЕ МАГАЗИНА</label>
+      <div style="display:flex;gap:8px">
+        <input type="text" id="settings-shopname" placeholder="MTB_BUYER" style="flex:1">
+        <button class="btn primary sm" onclick="saveShopName()">Сохранить</button>
+      </div>
+      <div style="font-size:12px;color:var(--text-muted);margin-top:4px">Отображается в чеке</div>
+    </div>
+
+    <div style="margin-top:24px">
+      <label style="font-size:13px;color:var(--text-muted);font-weight:600;display:block;margin-bottom:8px">🌙 ТЕМА</label>
+      <div style="display:flex;gap:8px">
+        <button class="btn sm" id="theme-light-btn" onclick="setTheme('light')" style="flex:1">☀️ Светлая</button>
+        <button class="btn sm" id="theme-auto-btn" onclick="setTheme('auto')" style="flex:1">⚙️ Авто</button>
+        <button class="btn sm" id="theme-dark-btn" onclick="setTheme('dark')" style="flex:1">🌙 Тёмная</button>
+      </div>
+    </div>
+
+    <div style="margin-top:24px">
+      <label style="font-size:13px;color:var(--text-muted);font-weight:600;display:block;margin-bottom:8px">📤 ЭКСПОРТ ДАННЫХ</label>
+      <button class="btn sm" onclick="exportCSV()" style="width:100%">Скачать товары как CSV</button>
+      <div style="font-size:12px;color:var(--text-muted);margin-top:4px">Открывается в Excel и Google Sheets</div>
+    </div>
+
+    <div style="margin-top:24px;padding-top:20px;border-top:0.5px solid var(--border)">
+      <label style="font-size:13px;color:var(--text-muted);font-weight:600;display:block;margin-bottom:8px">🗑️ ОПАСНАЯ ЗОНА</label>
+      <button class="btn danger sm" onclick="clearHistory()" style="width:100%">Очистить историю продаж</button>
+      <div style="font-size:12px;color:var(--text-muted);margin-top:4px">Удалит все записи о продажах навсегда</div>
+    </div>
+
+    <div class="modal-footer" style="margin-top:24px">
+      <button class="btn primary" onclick="closeSettings()">Закрыть</button>
+    </div>
+  </div>
+</div>
 
 <!-- Login Screen -->
 <div id="login-screen" style="display:none;position:fixed;inset:0;background:#111;z-index:9999;flex-direction:column;align-items:center;justify-content:center;padding:32px;box-sizing:border-box">
@@ -1318,11 +1373,72 @@ function renderHistory() {
 }
 
 async function clearHistory() {
-  if (!confirm('Очистить всю историю продаж?')) return;
+  if (!confirm('Очистить всю историю продаж? Это действие нельзя отменить.')) return;
   await txClear('sales');
-  await loadAll();
+  sales = [];
   renderHistory();
   renderStats();
+  closeSettings();
+}
+
+function openSettings() {
+  const name = localStorage.getItem('shopName') || 'MTB_BUYER';
+  document.getElementById('settings-shopname').value = name;
+  const theme = localStorage.getItem('theme') || 'auto';
+  updateThemeBtns(theme);
+  document.getElementById('settings-overlay').style.display = 'flex';
+}
+
+function closeSettings() {
+  document.getElementById('settings-overlay').style.display = 'none';
+}
+
+function saveShopName() {
+  const name = document.getElementById('settings-shopname').value.trim() || 'MTB_BUYER';
+  localStorage.setItem('shopName', name);
+  document.getElementById('shop-title').textContent = '👗 ' + name;
+  alert('Сохранено!');
+}
+
+function setTheme(mode) {
+  localStorage.setItem('theme', mode);
+  applyTheme(mode);
+  updateThemeBtns(mode);
+}
+
+function applyTheme(mode) {
+  const root = document.documentElement;
+  if (mode === 'dark') {
+    root.setAttribute('data-theme', 'dark');
+  } else if (mode === 'light') {
+    root.setAttribute('data-theme', 'light');
+  } else {
+    root.removeAttribute('data-theme');
+  }
+}
+
+function updateThemeBtns(mode) {
+  ['light','auto','dark'].forEach(m => {
+    const btn = document.getElementById('theme-' + m + '-btn');
+    if (btn) btn.classList.toggle('active', m === mode);
+  });
+}
+
+function exportCSV() {
+  const headers = ['Артикул','Название','Категория','Размер','Цена','Себестоимость','Количество','Мин.остаток','Описание'];
+  const rows = items.map(it => [
+    it.sku || '', it.name || '', it.category || '', it.size || '',
+    it.price || 0, it.cost || 0, it.qty || 0, it.minQty || 3, it.desc || ''
+  ].map(v => `"${String(v).replace(/"/g,'""')}"`).join(','));
+  const csv = '﻿' + headers.join(',') + '\n' + rows.join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  const shopName = localStorage.getItem('shopName') || 'MTB_BUYER';
+  a.download = shopName + '_товары_' + new Date().toLocaleDateString('ru-RU').replace(/\./g,'-') + '.csv';
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 function openSheetsModal() {
@@ -1423,6 +1539,7 @@ Object.assign(window, {
   showTab, openAddModal, openEdit, saveItem, closeModal, deleteItem,
   addToCart, cartQty, cartPrice, cartRemove, clearCart, confirmOrder, showCartToast, createReserve,
   confirmReserve, editReserve, cancelReserve, clearHistory,
+  openSettings, closeSettings, saveShopName, setTheme, exportCSV,
   openLightbox, closeLightbox, printReceipt,
   openSheetsModal, closeSheetsModal, importFromSheets,
   renderReport, renderTable, renderReserves, renderHistory,
@@ -1434,6 +1551,14 @@ const loginScreen = document.getElementById('login-screen');
 const mainEl = document.querySelector('main');
 const headerEl = document.querySelector('header');
 const tabsEl = document.querySelector('.tabs');
+
+// Apply saved settings on load
+(function() {
+  const theme = localStorage.getItem('theme') || 'auto';
+  applyTheme(theme);
+  const name = localStorage.getItem('shopName');
+  if (name) document.getElementById('shop-title').textContent = '👗 ' + name;
+})();
 
 onAuthStateChanged(auth, async (user) => {
   if (user) {
