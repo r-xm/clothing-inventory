@@ -741,9 +741,13 @@ function printReceipt(key) {
 
   const rows = lines.map((l, i) => `
     <tr>
-      <td style="padding:7px 0;font-size:13px;color:#333;vertical-align:top">${i+1}. ${esc(l.itemName)}${l.qty > 1 ? ` (${l.qty} шт.)` : ''}</td>
-      <td style="padding:7px 0;font-size:13px;color:#333;text-align:right;white-space:nowrap;vertical-align:top">${Number(l.qty * l.price).toLocaleString('ru-RU')} с</td>
-    </tr>`).join('');
+      <td style="padding:8px 0 4px;font-size:13px;color:#222;font-weight:600;vertical-align:top" colspan="2">${i+1}. ${esc(l.itemName)}</td>
+    </tr>
+    <tr>
+      <td style="padding:0 0 8px;font-size:12px;color:#777;vertical-align:top">${l.itemSku ? `Арт: ${esc(l.itemSku)} · ` : ''}${l.qty} шт. × ${Number(l.price).toLocaleString('ru-RU')} с</td>
+      <td style="padding:0 0 8px;font-size:13px;color:#222;font-weight:700;text-align:right;white-space:nowrap;vertical-align:top">${Number(l.qty * l.price).toLocaleString('ru-RU')} с</td>
+    </tr>
+    <tr><td colspan="2" style="border-top:1px dashed #ccc;padding:0"></td></tr>`).join('');
 
   let overlay = document.getElementById('receipt-overlay');
   if (overlay) overlay.remove();
