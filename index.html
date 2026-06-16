@@ -150,7 +150,10 @@
 </head>
 <body>
 <header>
-  <h1>👗 Склад одежды</h1>
+  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+    <h1>👗 Склад одежды</h1>
+    <button class="btn" onclick="doLogout()" style="font-size:12px;padding:5px 12px">Выйти</button>
+  </div>
   <div class="tabs">
     <button class="tab-btn active" onclick="showTab('inventory')">Остатки</button>
     <button class="tab-btn" onclick="showTab('reserves')">Брони <span id="reserve-badge" style="display:none;background:#e74c3c;color:#fff;border-radius:10px;padding:1px 6px;font-size:11px;margin-left:4px"></span></button>
@@ -232,6 +235,24 @@
     </div>
   </div>
 </main>
+
+<!-- Login Screen -->
+<div id="login-screen" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;align-items:center;justify-content:center">
+  <div style="background:var(--surface);border-radius:16px;padding:36px;width:100%;max-width:360px;box-shadow:0 8px 32px rgba(0,0,0,0.15)">
+    <h2 style="margin-bottom:6px;font-size:22px">👗 Учёт одежды</h2>
+    <p style="color:var(--text-muted);font-size:13px;margin-bottom:24px">Войдите чтобы продолжить</p>
+    <div class="form-group" style="margin-bottom:12px">
+      <label>Email</label>
+      <input type="email" id="login-email" placeholder="example@gmail.com" style="width:100%">
+    </div>
+    <div class="form-group" style="margin-bottom:20px">
+      <label>Пароль</label>
+      <input type="password" id="login-pass" placeholder="••••••••" style="width:100%" onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <div id="login-error" style="color:var(--danger);font-size:13px;margin-bottom:12px;min-height:18px"></div>
+    <button class="btn primary" style="width:100%;padding:12px" onclick="doLogin()">Войти</button>
+  </div>
+</div>
 
 <!-- Add/Edit Modal -->
 <!-- Google Sheets Modal -->
@@ -343,7 +364,8 @@
 <script type="module">
 // Firebase
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
-import { getFirestore, collection, getDocs, addDoc, setDoc, deleteDoc, doc, writeBatch, query, orderBy } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+import { getFirestore, collection, getDocs, addDoc, setDoc, deleteDoc, doc, writeBatch } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
 
 const firebaseConfig = {
   apiKey: "AIzaSyCa_yxoTwzeI6hKJkk-qdpC5b42j22E66g",
@@ -355,6 +377,7 @@ const firebaseConfig = {
 };
 const fbApp = initializeApp(firebaseConfig);
 const db = getFirestore(fbApp);
+const auth = getAuth(fbApp);
 
 let items = [];
 let sales = [];
@@ -1251,7 +1274,23 @@ async function importFromSheets() {
   }
 }
 
-// Expose functions to global scope (required for onclick handlers in HTML with type="module")
+async function doLogin() {
+  const email = document.getElementById('login-email').value.trim();
+  const pass  = document.getElementById('login-pass').value;
+  const errEl = document.getElementById('login-error');
+  errEl.textContent = '';
+  try {
+    await signInWithEmailAndPassword(auth, email, pass);
+  } catch(e) {
+    errEl.textContent = 'Неверный email или пароль';
+  }
+}
+
+async function doLogout() {
+  await signOut(auth);
+}
+
+// Expose functions to global scope
 Object.assign(window, {
   showTab, openAddModal, openEdit, saveItem, closeModal, deleteItem,
   addToCart, cartQty, cartPrice, cartRemove, clearCart, confirmOrder, createReserve,
@@ -1259,10 +1298,28 @@ Object.assign(window, {
   openLightbox, closeLightbox, printReceipt,
   openSheetsModal, closeSheetsModal, importFromSheets,
   renderReport, setRepPeriod, setSort,
+  doLogin, doLogout,
 });
 
-openDB().then(loadAll).then(renderTable).catch(err => {
-  document.querySelector('main').innerHTML = `<div class="empty"><p style="color:var(--danger);font-size:15px">Ошибка подключения к базе данных.<br><br>${err && err.message ? err.message : err}</p></div>`;
+const loginScreen = document.getElementById('login-screen');
+const mainEl = document.querySelector('main');
+const headerEl = document.querySelector('header');
+const tabsEl = document.querySelector('.tabs');
+
+onAuthStateChanged(auth, async (user) => {
+  if (user) {
+    loginScreen.style.display = 'none';
+    mainEl.style.display = '';
+    headerEl.style.display = '';
+    tabsEl.style.display = '';
+    await loadAll();
+    renderTable();
+  } else {
+    loginScreen.style.display = 'flex';
+    mainEl.style.display = 'none';
+    headerEl.style.display = 'none';
+    tabsEl.style.display = 'none';
+  }
 });
 </script>
 </body>
