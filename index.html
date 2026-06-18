@@ -1499,8 +1499,10 @@ function openBarcodeModal(itemId) {
   ctx.fillStyle = '#555'; ctx.font = '12px Arial';
   ctx.fillText(it.sku, W/2, 68 + bcCanvas.height + 12);
   const dataUrl = canvas.toDataURL('image/png');
+  const copies = parseInt(prompt('Сколько копий распечатать?', it.qty || 1));
+  if (!copies || copies < 1) return;
   const pf = document.getElementById('print-frame');
-  pf.innerHTML = `<img src="${dataUrl}" style="width:100%;max-width:400px">`;
+  pf.innerHTML = Array(copies).fill(`<img src="${dataUrl}" style="width:190px;margin:4px;display:inline-block">`).join('');
   window.print();
 }
 
