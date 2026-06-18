@@ -555,42 +555,46 @@ function renderReport() {
 
   const periodSales = sales.filter(s => s.soldAt >= fromTs && s.soldAt <= toTs);
 
-  const revenue = periodSales.reduce((s, l) => s + (l.total || 0), 0);
-  const units = periodSales.reduce((s, l) => s + (l.qty || 0), 0);
-  const orderIds = new Set(periodSales.map(l => l.orderId || l.id));
+  // Учитываем возвраты: effectiveQty = qty - returned
+  const netSales = periodSales.map(l => ({ ...l, netQty: l.qty - (l.returned || 0), netTotal: (l.qty - (l.returned || 0)) * (l.price || 0) }))
+    .filter(l => l.netQty > 0);
+
+  const revenue = netSales.reduce((s, l) => s + l.netTotal, 0);
+  const units = netSales.reduce((s, l) => s + l.netQty, 0);
+  const orderIds = new Set(netSales.map(l => l.orderId || l.id));
   const orderCount = orderIds.size;
   const avgOrder = orderCount ? revenue / orderCount : 0;
 
-  const profit = periodSales.reduce((s, l) => {
+  const profit = netSales.reduce((s, l) => {
     const it = items.find(i => i.id === l.itemId);
     const cost = it ? (it.cost || 0) : 0;
-    return s + (l.price - cost) * l.qty;
+    return s + (l.price - cost) * l.netQty;
   }, 0);
 
   const topMap = {};
-  for (const l of periodSales) {
+  for (const l of netSales) {
     const key = l.itemId;
     if (!topMap[key]) topMap[key] = { name: l.itemName, sku: l.itemSku, units: 0, revenue: 0 };
-    topMap[key].units += l.qty;
-    topMap[key].revenue += l.total || 0;
+    topMap[key].units += l.netQty;
+    topMap[key].revenue += l.netTotal;
   }
   const top = Object.values(topMap).sort((a,b) => b.revenue - a.revenue).slice(0,5);
 
   const catMap = {};
-  for (const l of periodSales) {
+  for (const l of netSales) {
     const it = items.find(i => i.id === l.itemId);
     const cat = it ? (it.category || 'Без категории') : 'Неизвестно';
     if (!catMap[cat]) catMap[cat] = { units: 0, revenue: 0 };
-    catMap[cat].units += l.qty;
-    catMap[cat].revenue += l.total || 0;
+    catMap[cat].units += l.netQty;
+    catMap[cat].revenue += l.netTotal;
   }
   const cats = Object.entries(catMap).sort((a,b) => b[1].revenue - a[1].revenue);
 
   const byDay = {};
-  for (const l of periodSales) {
+  for (const l of netSales) {
     const day = new Date(l.soldAt).toLocaleDateString('ru-RU', { day:'numeric', month:'short' });
     if (!byDay[day]) byDay[day] = { ts: l.soldAt, revenue: 0 };
-    byDay[day].revenue += l.total || 0;
+    byDay[day].revenue += l.netTotal;
   }
   const days = Object.entries(byDay).sort((a,b) => a[1].ts - b[1].ts);
   const maxDay = Math.max(...days.map(d => d[1].revenue), 1);
@@ -716,7 +720,7 @@ function renderStats() {
   const value = items.reduce((s, i) => s + (i.qty || 0) * (i.price || 0), 0);
   const low = items.filter(i => stockStatus(i) === 'low').length;
   const zero = items.filter(i => stockStatus(i) === 'zero').length;
-  const totalSales = sales.reduce((s, sl) => s + (sl.total || 0), 0);
+  const totalSales = sales.reduce((s, sl) => s + (sl.total || 0) - (sl.returned || 0) * (sl.price || 0), 0);
   const activeRes = reserves.filter(r => r.status === 'active').length;
   document.getElementById('stats-row').innerHTML = `
     <div class="stat-card"><div class="stat-label">Позиций</div><div class="stat-value">${items.length}</div></div>
