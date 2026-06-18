@@ -818,8 +818,7 @@ function renderTable() {
         </td>
         <td><div class="actions">
           <button class="btn sm primary" onclick="addToCart('${it.id}')">В корзину</button>
-          ${it.sku ? `<button class="btn sm" onclick="openBarcodeModal('${it.id}')">🏷️</button>` : ''}
-          <button class="btn sm" onclick="openEdit('${it.id}')">✏️</button>
+                    <button class="btn sm" onclick="openEdit('${it.id}')">✏️</button>
           <button class="btn sm danger" onclick="deleteItem('${it.id}')">✕</button>
         </div></td>
       </tr>`;
@@ -847,8 +846,7 @@ function renderTable() {
           </div>
           <div class="item-card-actions">
             <button class="btn sm primary" onclick="addToCart('${it.id}')">В корзину</button>
-            ${it.sku ? `<button class="btn sm" onclick="openBarcodeModal('${it.id}')">🏷️</button>` : ''}
-            <button class="btn sm" onclick="openEdit('${it.id}')">✏️</button>
+                        <button class="btn sm" onclick="openEdit('${it.id}')">✏️</button>
             <button class="btn sm danger" onclick="deleteItem('${it.id}')">✕</button>
           </div>
         </div>
