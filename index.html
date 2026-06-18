@@ -1467,15 +1467,27 @@ function closeBarcodeModal() {
 function printBarcode() {
   const area = document.getElementById('barcode-print-area');
   if (!area) return;
-  const win = window.open('', '_blank', 'width=400,height=300');
-  win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
-    <title>Штрихкод</title>
-    <style>
-      body { margin: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh; background: #fff; font-family: Arial, sans-serif; }
-      @media print { body { margin: 0; } }
-    </style>
-    </head><body>${area.outerHTML}<script>window.onload=()=>{window.print();window.close();}<\/script></body></html>`);
-  win.document.close();
+  const style = document.createElement('style');
+  style.id = 'print-barcode-style';
+  style.textContent = `@media print {
+    body > * { display: none !important; }
+    #barcode-print-wrapper { display: flex !important; position: fixed; inset: 0; justify-content: center; align-items: center; background: #fff; z-index: 99999; }
+  }`;
+  // Wrap area in a print container
+  let wrapper = document.getElementById('barcode-print-wrapper');
+  if (!wrapper) {
+    wrapper = document.createElement('div');
+    wrapper.id = 'barcode-print-wrapper';
+    wrapper.style.display = 'none';
+    document.body.appendChild(wrapper);
+  }
+  wrapper.innerHTML = area.outerHTML;
+  document.head.appendChild(style);
+  window.print();
+  setTimeout(() => {
+    style.remove();
+    wrapper.innerHTML = '';
+  }, 1000);
 }
 
 let returnOrderId = null;
