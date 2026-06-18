@@ -1410,7 +1410,7 @@ let returnOrderId = null;
 
 function openReturn(orderId) {
   returnOrderId = orderId;
-  const lines = sales.filter(s => (s.orderId || s.id) === orderId);
+  const lines = sales.filter(s => String(s.orderId || s.id) === String(orderId));
   const ro = document.getElementById('return-overlay');
   document.getElementById('return-lines').innerHTML = lines.map(l => {
     const alreadyReturned = l.returned || 0;
