@@ -1834,6 +1834,15 @@ const tabsEl = document.querySelector('.tabs');
       try { new Function(fn)(); } catch(err) { console.error(err); }
     }, { passive: false });
   }
+
+  // iOS Safari fix: кнопка печати штрихкода — прямой touchend для navigator.share
+  document.getElementById('barcode-overlay').addEventListener('touchend', e => {
+    const btn = e.target.closest('.btn.primary');
+    if (!btn) return;
+    e.preventDefault();
+    e.stopPropagation();
+    printBarcode();
+  }, { passive: false });
 })();
 
 onAuthStateChanged(auth, async (user) => {
