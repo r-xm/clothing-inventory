@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>StockFlow</title>
+<script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
@@ -263,6 +264,18 @@
     </div>
   </div>
 </main>
+
+<!-- Barcode Modal -->
+<div class="overlay" id="barcode-overlay" style="display:none" onclick="if(event.target===this)closeBarcodeModal()">
+  <div class="modal" style="max-width:380px">
+    <h2>🏷️ Штрихкод</h2>
+    <div id="barcode-content" style="margin-top:16px;text-align:center"></div>
+    <div class="modal-footer" style="margin-top:20px">
+      <button class="btn" onclick="closeBarcodeModal()">Закрыть</button>
+      <button class="btn primary" onclick="printBarcode()">🖨️ Печать</button>
+    </div>
+  </div>
+</div>
 
 <!-- Return Modal -->
 <div class="overlay" id="return-overlay" style="display:none" onclick="if(event.target===this)closeReturn()">
@@ -776,6 +789,7 @@ function renderTable() {
         </td>
         <td><div class="actions">
           <button class="btn sm primary" onclick="addToCart('${it.id}')">В корзину</button>
+          ${it.sku ? `<button class="btn sm" onclick="openBarcodeModal('${it.id}')">🏷️</button>` : ''}
           <button class="btn sm" onclick="openEdit('${it.id}')">✏️</button>
           <button class="btn sm danger" onclick="deleteItem('${it.id}')">✕</button>
         </div></td>
@@ -804,6 +818,7 @@ function renderTable() {
           </div>
           <div class="item-card-actions">
             <button class="btn sm primary" onclick="addToCart('${it.id}')">В корзину</button>
+            ${it.sku ? `<button class="btn sm" onclick="openBarcodeModal('${it.id}')">🏷️</button>` : ''}
             <button class="btn sm" onclick="openEdit('${it.id}')">✏️</button>
             <button class="btn sm danger" onclick="deleteItem('${it.id}')">✕</button>
           </div>
@@ -1412,6 +1427,57 @@ function renderHistory() {
   }).join('');
 }
 
+let _barcodeItemId = null;
+
+function openBarcodeModal(itemId) {
+  const it = items.find(i => i.id === itemId);
+  if (!it || !it.sku) return;
+  _barcodeItemId = itemId;
+  const shopName = localStorage.getItem('shopName') || 'StockFlow';
+  document.getElementById('barcode-content').innerHTML = `
+    <div id="barcode-print-area" style="padding:16px;background:#fff;border-radius:8px;display:inline-block;min-width:220px">
+      <div style="font-size:11px;color:#666;margin-bottom:4px;letter-spacing:1px">${esc(shopName)}</div>
+      <div style="font-size:13px;font-weight:700;color:#111;margin-bottom:2px;word-break:break-word">${esc(it.name)}</div>
+      ${it.size ? `<div style="font-size:11px;color:#444;margin-bottom:2px">Размер: ${esc(it.size)}</div>` : ''}
+      <div style="font-size:13px;font-weight:700;color:#111;margin-bottom:8px">${formatPrice(it.price)}</div>
+      <svg id="barcode-svg"></svg>
+      <div style="font-size:11px;color:#555;margin-top:4px">${esc(it.sku)}</div>
+    </div>`;
+  JsBarcode('#barcode-svg', it.sku, {
+    format: 'CODE128',
+    width: 2,
+    height: 60,
+    displayValue: false,
+    margin: 4,
+    background: '#ffffff',
+    lineColor: '#000000',
+  });
+  const bo = document.getElementById('barcode-overlay');
+  bo.style.display = 'flex';
+  lockScroll(bo);
+}
+
+function closeBarcodeModal() {
+  const bo = document.getElementById('barcode-overlay');
+  bo.style.display = 'none';
+  unlockScroll(bo);
+  _barcodeItemId = null;
+}
+
+function printBarcode() {
+  const area = document.getElementById('barcode-print-area');
+  if (!area) return;
+  const win = window.open('', '_blank', 'width=400,height=300');
+  win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
+    <title>Штрихкод</title>
+    <style>
+      body { margin: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh; background: #fff; font-family: Arial, sans-serif; }
+      @media print { body { margin: 0; } }
+    </style>
+    </head><body>${area.outerHTML}<script>window.onload=()=>{window.print();window.close();}<\/script></body></html>`);
+  win.document.close();
+}
+
 let returnOrderId = null;
 
 function openReturn(orderId) {
@@ -1666,6 +1732,7 @@ Object.assign(window, {
   confirmReserve, editReserve, cancelReserve, clearHistory, clearAllData,
   openSettings, closeSettings, saveShopName, setTheme, exportCSV,
   openReturn, closeReturn, confirmReturn,
+  openBarcodeModal, closeBarcodeModal, printBarcode,
   openLightbox, closeLightbox, printReceipt,
   openSheetsModal, closeSheetsModal, importFromSheets,
   renderReport, renderTable, renderReserves, renderHistory,
