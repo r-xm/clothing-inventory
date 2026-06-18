@@ -169,6 +169,23 @@
 <body>
 <div id="print-frame"></div>
 
+<!-- Barcode Copies Modal -->
+<div class="overlay" id="barcode-copies-overlay" style="display:none" onclick="if(event.target===this)closeBarcodeModal()">
+  <div class="modal" style="max-width:320px">
+    <h2>🏷️ Печать этикеток</h2>
+    <div id="barcode-copies-name" style="margin-top:8px;font-size:14px;color:var(--text-muted)"></div>
+    <div style="margin-top:16px">
+      <label style="font-size:13px;color:var(--text-muted)">Количество копий</label>
+      <input type="number" id="barcode-copies-input" min="1" max="100" value="1"
+        style="margin-top:6px;font-size:18px;text-align:center;width:100%;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text)">
+    </div>
+    <div class="modal-footer" style="margin-top:20px">
+      <button class="btn" onclick="closeBarcodeModal()">Отмена</button>
+      <button class="btn primary" onclick="doPrintBarcode()">🖨️ Печать</button>
+    </div>
+  </div>
+</div>
+
 <!-- Scanner Modal -->
 <div class="overlay" id="scanner-overlay" style="display:none">
   <div class="modal" style="max-width:400px;padding:0;overflow:hidden">
@@ -1473,9 +1490,12 @@ function translitSku(s) {
   return s.toUpperCase().split('').map(c => map[c] ?? c).join('');
 }
 
+let _barcodeDataUrl = null;
+
 function openBarcodeModal(itemId) {
   const it = items.find(i => i.id === itemId);
   if (!it || !it.sku) return;
+  _barcodeItemId = itemId;
   const shopName = localStorage.getItem('shopName') || 'StockFlow';
   const W = 400, H = 230, scale = 2;
   const canvas = document.createElement('canvas');
@@ -1498,11 +1518,26 @@ function openBarcodeModal(itemId) {
   ctx.drawImage(bcCanvas, bx, 68);
   ctx.fillStyle = '#555'; ctx.font = '12px Arial';
   ctx.fillText(it.sku, W/2, 68 + bcCanvas.height + 12);
-  const dataUrl = canvas.toDataURL('image/png');
-  const copies = parseInt(prompt('Сколько копий распечатать?', it.qty || 1));
-  if (!copies || copies < 1) return;
+  _barcodeDataUrl = canvas.toDataURL('image/png');
+  document.getElementById('barcode-copies-name').textContent = it.name + (it.size ? ' · ' + it.size : '');
+  document.getElementById('barcode-copies-input').value = it.qty || 1;
+  const ov = document.getElementById('barcode-copies-overlay');
+  ov.style.display = 'flex';
+  lockScroll(ov);
+}
+
+function closeBarcodeModal() {
+  const ov = document.getElementById('barcode-copies-overlay');
+  ov.style.display = 'none';
+  unlockScroll(ov);
+  _barcodeDataUrl = null;
+}
+
+function doPrintBarcode() {
+  const copies = parseInt(document.getElementById('barcode-copies-input').value) || 1;
+  closeBarcodeModal();
   const pf = document.getElementById('print-frame');
-  pf.innerHTML = Array(copies).fill(`<img src="${dataUrl}" style="width:190px;margin:4px;display:inline-block">`).join('');
+  pf.innerHTML = Array(copies).fill(`<img src="${_barcodeDataUrl}" style="width:190px;margin:4px;display:inline-block">`).join('');
   window.print();
 }
 
@@ -1796,7 +1831,7 @@ Object.assign(window, {
   confirmReserve, editReserve, cancelReserve, clearHistory, clearAllData,
   openSettings, closeSettings, saveShopName, setTheme, exportCSV,
   openReturn, closeReturn, confirmReturn,
-  openBarcodeModal, openScanner, closeScanner,
+  openBarcodeModal, closeBarcodeModal, doPrintBarcode, openScanner, closeScanner,
   openLightbox, closeLightbox, printReceipt,
   openSheetsModal, closeSheetsModal, importFromSheets,
   renderReport, renderTable, renderReserves, renderHistory,
