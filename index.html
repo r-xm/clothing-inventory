@@ -825,6 +825,16 @@ function renderTable() {
         </div>
       </div>`;
     }).join('');
+
+    // iOS: прямые touchend на каждую кнопку штрихкода
+    document.querySelectorAll('button[onclick^="openBarcodeModal"]').forEach(btn => {
+      btn.addEventListener('touchend', e => {
+        e.preventDefault();
+        e.stopPropagation();
+        const m = btn.getAttribute('onclick').match(/openBarcodeModal\('(.+?)'\)/);
+        if (m) openBarcodeModal(m[1]);
+      }, { passive: false });
+    });
   }
   renderStats();
 }
