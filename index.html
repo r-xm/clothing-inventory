@@ -1814,7 +1814,7 @@ const tabsEl = document.querySelector('.tabs');
     }, { passive: false });
   });
 
-  // iOS Safari fix: делегирование для динамических кнопок
+  // iOS Safari fix: делегирование для динамических кнопок (data-action)
   document.addEventListener('touchend', e => {
     const btn = e.target.closest('[data-action="barcode"]');
     if (btn) {
@@ -1822,6 +1822,18 @@ const tabsEl = document.querySelector('.tabs');
       openBarcodeModal(btn.dataset.id);
     }
   }, { passive: false });
+
+  // iOS Safari fix: универсальный обработчик для всех кнопок с onclick
+  if ('ontouchstart' in window) {
+    document.addEventListener('touchend', e => {
+      const btn = e.target.closest('button[onclick]');
+      if (!btn || e.defaultPrevented) return;
+      const fn = btn.getAttribute('onclick');
+      if (!fn) return;
+      e.preventDefault();
+      try { new Function(fn)(); } catch(err) { console.error(err); }
+    }, { passive: false });
+  }
 })();
 
 onAuthStateChanged(auth, async (user) => {
