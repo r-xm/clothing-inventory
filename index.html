@@ -173,6 +173,7 @@
     <button class="tab-btn" onclick="showTab('reserves')">Брони <span id="reserve-badge" style="display:none;background:#e74c3c;color:#fff;border-radius:10px;padding:1px 6px;font-size:11px;margin-left:4px"></span></button>
     <button class="tab-btn" onclick="showTab('history')">Продажи</button>
     <button class="tab-btn" onclick="showTab('report')">📊 Отчёт</button>
+    <button class="tab-btn" onclick="showTab('labels')">🏷️ Этикетки</button>
     <button class="tab-btn" id="cart-tab-btn" onclick="showTab('cart')" style="display:none">🛒 Корзина <span id="cart-badge" style="background:#e74c3c;color:#fff;border-radius:10px;padding:1px 6px;font-size:11px;margin-left:4px"></span></button>
   </div>
 </header>
@@ -262,6 +263,11 @@
         <button class="btn primary" style="flex:1" onclick="confirmOrder()">✅ Продать</button>
       </div>
     </div>
+  </div>
+
+  <div id="tab-labels" style="display:none;padding:12px">
+    <div style="margin-bottom:12px;font-size:13px;color:var(--text-muted)">Нажмите на товар чтобы открыть этикетку</div>
+    <div id="labels-list"></div>
   </div>
 </main>
 
@@ -529,7 +535,7 @@ async function loadAll() {
 }
 
 function showTab(t) {
-  ['inventory','reserves','history','report','cart'].forEach(id => {
+  ['inventory','reserves','history','report','cart','labels'].forEach(id => {
     document.getElementById('tab-'+id).style.display = t === id ? '' : 'none';
   });
   document.querySelectorAll('.tab-btn').forEach(b => {
@@ -539,6 +545,29 @@ function showTab(t) {
   if (t === 'history') renderHistory();
   if (t === 'reserves') renderReserves();
   if (t === 'report') { initReportDates(); renderReport(); }
+  if (t === 'labels') renderLabels();
+}
+
+function renderLabels() {
+  const list = document.getElementById('labels-list');
+  const withSku = items.filter(i => i.sku);
+  if (!withSku.length) {
+    list.innerHTML = '<div class="empty"><p>Нет товаров с артикулом (SKU)</p></div>';
+    return;
+  }
+  list.innerHTML = withSku.map(it => `
+    <div onclick="openBarcodeModal('${it.id}')" style="display:flex;align-items:center;gap:12px;padding:12px;background:var(--surface);border:0.5px solid var(--border);border-radius:var(--radius);margin-bottom:8px;cursor:pointer">
+      <div style="font-size:28px;flex-shrink:0">🏷️</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:600;font-size:14px">${esc(it.name)}</div>
+        <div style="font-size:12px;color:var(--text-muted);margin-top:2px">
+          <code style="background:var(--bg);padding:1px 5px;border-radius:3px">${esc(it.sku)}</code>
+          ${it.size ? ' · ' + esc(it.size) : ''}
+          · ${formatPrice(it.price)}
+        </div>
+      </div>
+      <div style="color:var(--text-muted);font-size:18px">›</div>
+    </div>`).join('');
 }
 
 function initReportDates() {
@@ -1773,7 +1802,7 @@ Object.assign(window, {
   openBarcodeModal, closeBarcodeModal, printBarcode,
   openLightbox, closeLightbox, printReceipt,
   openSheetsModal, closeSheetsModal, importFromSheets,
-  renderReport, renderTable, renderReserves, renderHistory,
+  renderReport, renderTable, renderReserves, renderHistory, renderLabels,
   setRepPeriod, setSort, previewPhoto,
   doLogin, doLogout, receiptCache,
 });
