@@ -272,7 +272,7 @@
     <div id="barcode-content" style="margin-top:16px;text-align:center"></div>
     <div class="modal-footer" style="margin-top:20px">
       <button class="btn" onclick="closeBarcodeModal()">Закрыть</button>
-      <button class="btn primary" onclick="printBarcode()">🖨️ Печать</button>
+      <button class="btn primary" onclick="printBarcode()">📤 Сохранить / Печать</button>
     </div>
   </div>
 </div>
@@ -1465,29 +1465,73 @@ function closeBarcodeModal() {
 }
 
 function printBarcode() {
-  const area = document.getElementById('barcode-print-area');
-  if (!area) return;
-  const style = document.createElement('style');
-  style.id = 'print-barcode-style';
-  style.textContent = `@media print {
-    body > * { display: none !important; }
-    #barcode-print-wrapper { display: flex !important; position: fixed; inset: 0; justify-content: center; align-items: center; background: #fff; z-index: 99999; }
-  }`;
-  // Wrap area in a print container
-  let wrapper = document.getElementById('barcode-print-wrapper');
-  if (!wrapper) {
-    wrapper = document.createElement('div');
-    wrapper.id = 'barcode-print-wrapper';
-    wrapper.style.display = 'none';
-    document.body.appendChild(wrapper);
-  }
-  wrapper.innerHTML = area.outerHTML;
-  document.head.appendChild(style);
-  window.print();
-  setTimeout(() => {
-    style.remove();
-    wrapper.innerHTML = '';
-  }, 1000);
+  const it = items.find(i => i.id === _barcodeItemId);
+  if (!it) return;
+  const shopName = localStorage.getItem('shopName') || 'StockFlow';
+
+  // Рисуем этикетку на canvas
+  const W = 400, H = 220;
+  const canvas = document.createElement('canvas');
+  canvas.width = W * 2; canvas.height = H * 2; // retina
+  const ctx = canvas.getContext('2d');
+  ctx.scale(2, 2);
+
+  // Фон
+  ctx.fillStyle = '#ffffff';
+  ctx.roundRect(0, 0, W, H, 8);
+  ctx.fill();
+
+  // Название магазина
+  ctx.fillStyle = '#999';
+  ctx.font = '11px Arial';
+  ctx.textAlign = 'center';
+  ctx.fillText(shopName, W/2, 20);
+
+  // Название товара
+  ctx.fillStyle = '#111';
+  ctx.font = 'bold 15px Arial';
+  ctx.fillText(it.name.length > 30 ? it.name.substring(0,30)+'…' : it.name, W/2, 42);
+
+  // Размер и цена
+  ctx.fillStyle = '#444';
+  ctx.font = '12px Arial';
+  const meta = [it.size ? `Размер: ${it.size}` : '', formatPrice(it.price)].filter(Boolean).join('   ');
+  ctx.fillText(meta, W/2, 60);
+
+  // Штрихкод через временный svg
+  const tmpSvg = document.createElement('svg');
+  JsBarcode(tmpSvg, it.sku, { format:'CODE128', width:2, height:70, displayValue:false, margin:0, background:'#ffffff', lineColor:'#000000', xmlDocument: document });
+  const svgData = new XMLSerializer().serializeToString(tmpSvg);
+  const svgBlob = new Blob([svgData], { type:'image/svg+xml;charset=utf-8' });
+  const svgUrl = URL.createObjectURL(svgBlob);
+
+  const img = new Image();
+  img.onload = () => {
+    const bw = Math.min(img.width, W - 40);
+    const bh = img.height * (bw / img.width);
+    ctx.drawImage(img, (W - bw)/2, 72, bw, bh);
+    URL.revokeObjectURL(svgUrl);
+
+    // Артикул
+    ctx.fillStyle = '#555';
+    ctx.font = '12px Arial';
+    ctx.fillText(it.sku, W/2, 72 + bh + 16);
+
+    // Экспорт как PNG
+    canvas.toBlob(blob => {
+      if (navigator.share && navigator.canShare && navigator.canShare({ files: [new File([blob], 'label.png', { type:'image/png' })] })) {
+        // iOS Share Sheet — сразу можно напечатать через AirPrint
+        navigator.share({ files: [new File([blob], `${it.sku}_label.png`, { type:'image/png' })] });
+      } else {
+        // Десктоп — скачать файл
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `${it.sku}_label.png`;
+        a.click();
+      }
+    }, 'image/png');
+  };
+  img.src = svgUrl;
 }
 
 let returnOrderId = null;
