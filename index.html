@@ -1448,7 +1448,7 @@ function closeReturn() {
 }
 
 async function confirmReturn() {
-  const lines = sales.filter(s => (s.orderId || s.id) === returnOrderId);
+  const lines = sales.filter(s => String(s.orderId || s.id) === String(returnOrderId));
   const toReturn = lines.filter(l => {
     const chk = document.getElementById('ret-chk-' + l.id);
     return chk && chk.checked;
