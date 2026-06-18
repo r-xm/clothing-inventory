@@ -1538,7 +1538,14 @@ function doPrintBarcode() {
   closeBarcodeModal();
   const pf = document.getElementById('print-frame');
   pf.innerHTML = Array(copies).fill(`<img src="${dataUrl}" style="width:190px;margin:4px;display:inline-block">`).join('');
-  window.print();
+  // Ждём пока браузер отрисует картинки
+  const imgs = pf.querySelectorAll('img');
+  let loaded = 0;
+  const tryPrint = () => { if (++loaded >= imgs.length) window.print(); };
+  imgs.forEach(img => {
+    if (img.complete) tryPrint();
+    else { img.onload = tryPrint; img.onerror = tryPrint; }
+  });
 }
 
 let _scanner = null;
