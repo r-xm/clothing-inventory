@@ -1469,69 +1469,64 @@ function printBarcode() {
   if (!it) return;
   const shopName = localStorage.getItem('shopName') || 'StockFlow';
 
-  // Рисуем этикетку на canvas
-  const W = 400, H = 220;
+  const W = 400, H = 230;
+  const scale = 2;
   const canvas = document.createElement('canvas');
-  canvas.width = W * 2; canvas.height = H * 2; // retina
+  canvas.width = W * scale;
+  canvas.height = H * scale;
   const ctx = canvas.getContext('2d');
-  ctx.scale(2, 2);
+  ctx.scale(scale, scale);
 
   // Фон
   ctx.fillStyle = '#ffffff';
-  ctx.roundRect(0, 0, W, H, 8);
-  ctx.fill();
+  ctx.fillRect(0, 0, W, H);
 
-  // Название магазина
-  ctx.fillStyle = '#999';
-  ctx.font = '11px Arial';
+  // Рамка
+  ctx.strokeStyle = '#ddd';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(0.5, 0.5, W-1, H-1);
+
+  // Штрихкод рисуем через временный canvas
+  const bcCanvas = document.createElement('canvas');
+  JsBarcode(bcCanvas, it.sku, { format:'CODE128', width:2, height:70, displayValue:false, margin:6, background:'#ffffff', lineColor:'#000000' });
+  const bx = (W - bcCanvas.width) / 2;
+
+  // Тексты сверху
   ctx.textAlign = 'center';
-  ctx.fillText(shopName, W/2, 20);
-
-  // Название товара
-  ctx.fillStyle = '#111';
-  ctx.font = 'bold 15px Arial';
-  ctx.fillText(it.name.length > 30 ? it.name.substring(0,30)+'…' : it.name, W/2, 42);
-
-  // Размер и цена
-  ctx.fillStyle = '#444';
+  ctx.fillStyle = '#888';
   ctx.font = '12px Arial';
-  const meta = [it.size ? `Размер: ${it.size}` : '', formatPrice(it.price)].filter(Boolean).join('   ');
+  ctx.fillText(shopName, W/2, 18);
+
+  ctx.fillStyle = '#111';
+  ctx.font = 'bold 16px Arial';
+  const name = it.name.length > 32 ? it.name.substring(0,32)+'…' : it.name;
+  ctx.fillText(name, W/2, 40);
+
+  ctx.fillStyle = '#333';
+  ctx.font = '13px Arial';
+  const meta = [it.size ? `Размер: ${it.size}` : '', formatPrice(it.price)].filter(Boolean).join('    ');
   ctx.fillText(meta, W/2, 60);
 
-  // Штрихкод через временный svg
-  const tmpSvg = document.createElement('svg');
-  JsBarcode(tmpSvg, it.sku, { format:'CODE128', width:2, height:70, displayValue:false, margin:0, background:'#ffffff', lineColor:'#000000', xmlDocument: document });
-  const svgData = new XMLSerializer().serializeToString(tmpSvg);
-  const svgBlob = new Blob([svgData], { type:'image/svg+xml;charset=utf-8' });
-  const svgUrl = URL.createObjectURL(svgBlob);
+  // Штрихкод
+  ctx.drawImage(bcCanvas, bx, 68);
 
-  const img = new Image();
-  img.onload = () => {
-    const bw = Math.min(img.width, W - 40);
-    const bh = img.height * (bw / img.width);
-    ctx.drawImage(img, (W - bw)/2, 72, bw, bh);
-    URL.revokeObjectURL(svgUrl);
+  // Артикул под штрихкодом
+  ctx.fillStyle = '#555';
+  ctx.font = '12px Arial';
+  ctx.fillText(it.sku, W/2, 68 + bcCanvas.height + 12);
 
-    // Артикул
-    ctx.fillStyle = '#555';
-    ctx.font = '12px Arial';
-    ctx.fillText(it.sku, W/2, 72 + bh + 16);
-
-    // Экспорт как PNG
-    canvas.toBlob(blob => {
-      if (navigator.share && navigator.canShare && navigator.canShare({ files: [new File([blob], 'label.png', { type:'image/png' })] })) {
-        // iOS Share Sheet — сразу можно напечатать через AirPrint
-        navigator.share({ files: [new File([blob], `${it.sku}_label.png`, { type:'image/png' })] });
-      } else {
-        // Десктоп — скачать файл
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = `${it.sku}_label.png`;
-        a.click();
-      }
-    }, 'image/png');
-  };
-  img.src = svgUrl;
+  // Поделиться / скачать
+  canvas.toBlob(blob => {
+    const file = new File([blob], `${it.sku}_label.png`, { type: 'image/png' });
+    if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+      navigator.share({ files: [file] }).catch(() => {});
+    } else {
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = file.name;
+      a.click();
+    }
+  }, 'image/png');
 }
 
 let returnOrderId = null;
