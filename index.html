@@ -1800,7 +1800,11 @@ const tabsEl = document.querySelector('.tabs');
     }, { passive: false });
   });
 
-  // iOS Safari fix: делегирование для динамических кнопок (data-action)
+  // Делегирование для кнопок data-action="barcode" (click — десктоп, touchend — iOS)
+  document.addEventListener('click', e => {
+    const btn = e.target.closest('[data-action="barcode"]');
+    if (btn) openBarcodeModal(btn.dataset.id);
+  });
   document.addEventListener('touchend', e => {
     const btn = e.target.closest('[data-action="barcode"]');
     if (btn) {
