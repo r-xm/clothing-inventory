@@ -1466,67 +1466,53 @@ function closeBarcodeModal() {
 
 function printBarcode() {
   const it = items.find(i => i.id === _barcodeItemId);
-  if (!it) return;
+  if (!it) { alert('Товар не найден'); return; }
   const shopName = localStorage.getItem('shopName') || 'StockFlow';
 
-  const W = 400, H = 230;
-  const scale = 2;
+  const W = 400, H = 230, scale = 2;
   const canvas = document.createElement('canvas');
   canvas.width = W * scale;
   canvas.height = H * scale;
   const ctx = canvas.getContext('2d');
   ctx.scale(scale, scale);
 
-  // Фон
   ctx.fillStyle = '#ffffff';
   ctx.fillRect(0, 0, W, H);
-
-  // Рамка
   ctx.strokeStyle = '#ddd';
   ctx.lineWidth = 1;
   ctx.strokeRect(0.5, 0.5, W-1, H-1);
 
-  // Штрихкод рисуем через временный canvas
   const bcCanvas = document.createElement('canvas');
   JsBarcode(bcCanvas, it.sku, { format:'CODE128', width:2, height:70, displayValue:false, margin:6, background:'#ffffff', lineColor:'#000000' });
   const bx = (W - bcCanvas.width) / 2;
 
-  // Тексты сверху
   ctx.textAlign = 'center';
-  ctx.fillStyle = '#888';
-  ctx.font = '12px Arial';
+  ctx.fillStyle = '#888'; ctx.font = '12px Arial';
   ctx.fillText(shopName, W/2, 18);
-
-  ctx.fillStyle = '#111';
-  ctx.font = 'bold 16px Arial';
+  ctx.fillStyle = '#111'; ctx.font = 'bold 16px Arial';
   const name = it.name.length > 32 ? it.name.substring(0,32)+'…' : it.name;
   ctx.fillText(name, W/2, 40);
-
-  ctx.fillStyle = '#333';
-  ctx.font = '13px Arial';
+  ctx.fillStyle = '#333'; ctx.font = '13px Arial';
   const meta = [it.size ? `Размер: ${it.size}` : '', formatPrice(it.price)].filter(Boolean).join('    ');
   ctx.fillText(meta, W/2, 60);
-
-  // Штрихкод
   ctx.drawImage(bcCanvas, bx, 68);
-
-  // Артикул под штрихкодом
-  ctx.fillStyle = '#555';
-  ctx.font = '12px Arial';
+  ctx.fillStyle = '#555'; ctx.font = '12px Arial';
   ctx.fillText(it.sku, W/2, 68 + bcCanvas.height + 12);
 
-  // Поделиться / скачать
-  canvas.toBlob(blob => {
-    const file = new File([blob], `${it.sku}_label.png`, { type: 'image/png' });
-    if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-      navigator.share({ files: [file] }).catch(() => {});
-    } else {
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = file.name;
-      a.click();
-    }
-  }, 'image/png');
+  const dataUrl = canvas.toDataURL('image/png');
+  const fname = `${it.sku}_label.png`;
+
+  // Показать PNG в модале — долгое нажатие (iOS) или ПКМ (Mac) для сохранения
+  const content = document.getElementById('barcode-content');
+  content.innerHTML = `
+    <div style="background:#fff;border-radius:8px;padding:12px;display:inline-block">
+      <img src="${dataUrl}" style="max-width:100%;border-radius:4px;display:block" id="barcode-img-preview">
+    </div>
+    <div style="margin-top:10px;font-size:12px;color:var(--text-muted)">
+      📱 iPhone: удержите фото → «Сохранить»<br>
+      🖥 Mac: правая кнопка → «Сохранить как»
+    </div>
+    <a id="barcode-dl-link" href="${dataUrl}" download="${fname}" style="display:inline-block;margin-top:10px" class="btn primary">⬇️ Скачать</a>`;
 }
 
 let returnOrderId = null;
