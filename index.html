@@ -1534,9 +1534,10 @@ function closeBarcodeModal() {
 
 function doPrintBarcode() {
   const copies = parseInt(document.getElementById('barcode-copies-input').value) || 1;
+  const dataUrl = _barcodeDataUrl;
   closeBarcodeModal();
   const pf = document.getElementById('print-frame');
-  pf.innerHTML = Array(copies).fill(`<img src="${_barcodeDataUrl}" style="width:190px;margin:4px;display:inline-block">`).join('');
+  pf.innerHTML = Array(copies).fill(`<img src="${dataUrl}" style="width:190px;margin:4px;display:inline-block">`).join('');
   window.print();
 }
 
