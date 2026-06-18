@@ -1803,7 +1803,15 @@ const tabsEl = document.querySelector('.tabs');
 
   // iOS Safari fix: универсальный обработчик для всех кнопок с onclick
   if ('ontouchstart' in window) {
+    let _touchStartX = 0, _touchStartY = 0;
+    document.addEventListener('touchstart', e => {
+      _touchStartX = e.touches[0].clientX;
+      _touchStartY = e.touches[0].clientY;
+    }, { passive: true });
     document.addEventListener('touchend', e => {
+      const dx = Math.abs(e.changedTouches[0].clientX - _touchStartX);
+      const dy = Math.abs(e.changedTouches[0].clientY - _touchStartY);
+      if (dx > 10 || dy > 10) return; // был скролл — игнорируем
       const btn = e.target.closest('button[onclick]');
       if (!btn || e.defaultPrevented) return;
       const fn = btn.getAttribute('onclick');
