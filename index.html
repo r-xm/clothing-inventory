@@ -826,15 +826,6 @@ function renderTable() {
       </div>`;
     }).join('');
 
-    // iOS: прямые touchend на каждую кнопку штрихкода
-    document.querySelectorAll('button[onclick^="openBarcodeModal"]').forEach(btn => {
-      btn.addEventListener('touchend', e => {
-        e.preventDefault();
-        e.stopPropagation();
-        const m = btn.getAttribute('onclick').match(/openBarcodeModal\('(.+?)'\)/);
-        if (m) openBarcodeModal(m[1]);
-      }, { passive: false });
-    });
   }
   renderStats();
 }
@@ -1809,19 +1800,6 @@ const tabsEl = document.querySelector('.tabs');
       setTheme(mode);
     }, { passive: false });
   });
-
-  // Делегирование для кнопок data-action="barcode" (click — десктоп, touchend — iOS)
-  document.addEventListener('click', e => {
-    const btn = e.target.closest('[data-action="barcode"]');
-    if (btn) openBarcodeModal(btn.dataset.id);
-  });
-  document.addEventListener('touchend', e => {
-    const btn = e.target.closest('[data-action="barcode"]');
-    if (btn) {
-      e.preventDefault();
-      openBarcodeModal(btn.dataset.id);
-    }
-  }, { passive: false });
 
   // iOS Safari fix: универсальный обработчик для всех кнопок с onclick
   if ('ontouchstart' in window) {
