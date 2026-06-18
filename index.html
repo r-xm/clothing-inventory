@@ -264,6 +264,18 @@
   </div>
 </main>
 
+<!-- Return Modal -->
+<div class="overlay" id="return-overlay" style="display:none" onclick="if(event.target===this)closeReturn()">
+  <div class="modal" style="max-width:420px">
+    <h2>↩ Возврат товара</h2>
+    <div id="return-lines" style="margin-top:16px"></div>
+    <div class="modal-footer" style="margin-top:20px">
+      <button class="btn" onclick="closeReturn()">Отмена</button>
+      <button class="btn primary" onclick="confirmReturn()">Принять возврат</button>
+    </div>
+  </div>
+</div>
+
 <!-- Settings Modal -->
 <div class="overlay" id="settings-overlay" style="display:none" onclick="if(event.target===this)closeSettings()">
   <div class="modal" style="max-width:420px">
@@ -1365,21 +1377,100 @@ function renderHistory() {
       title: 'Чек о продаже'
     };
 
+    const allReturned = o.lines.every(l => (l.returned || 0) >= l.qty);
+    const anyReturned = o.lines.some(l => (l.returned || 0) > 0);
+    const returnBadge = allReturned
+      ? `<span style="font-size:11px;background:var(--danger-bg);color:var(--danger);padding:2px 7px;border-radius:10px;font-weight:600">Возврат</span>`
+      : anyReturned
+        ? `<span style="font-size:11px;background:var(--warn-bg);color:var(--warn);padding:2px 7px;border-radius:10px;font-weight:600">Частичный возврат</span>`
+        : '';
+
     return `<div class="history-item" style="flex-direction:column;align-items:stretch;gap:8px">
       <div style="display:flex;justify-content:space-between;align-items:center">
-        <div>
+        <div style="min-width:0;flex:1">
           <div style="font-weight:600;font-size:14px">${o.lines.length > 1 ? `Заказ (${o.lines.length} позиции)` : esc(o.lines[0].itemName)}</div>
           ${o.note ? `<div class="history-meta">${esc(o.note)}</div>` : ''}
+          ${returnBadge ? `<div style="margin-top:4px">${returnBadge}</div>` : ''}
         </div>
-        <div style="text-align:right;flex-shrink:0">
+        <div style="text-align:right;flex-shrink:0;margin-left:12px">
           <div style="font-weight:600;color:var(--success)">${formatPrice(orderTotal)}</div>
           <div class="history-meta">${dateStr}, ${timeStr}</div>
-          <button class="btn sm" style="margin-top:6px" onclick="printReceipt('sale_${o.id}')">🖨️ Чек</button>
+          <div style="display:flex;gap:6px;margin-top:6px;justify-content:flex-end">
+            <button class="btn sm" onclick="printReceipt('sale_${o.id}')">🖨️ Чек</button>
+            ${!allReturned ? `<button class="btn sm" style="color:var(--danger);border-color:var(--danger)" onclick="openReturn('${o.id}')">↩ Возврат</button>` : ''}
+          </div>
         </div>
       </div>
       ${o.lines.length > 1 ? `<div style="border-top:0.5px solid var(--border);padding-top:6px">${linesHtml}</div>` : ''}
     </div>`;
   }).join('');
+}
+
+let returnOrderId = null;
+
+function openReturn(orderId) {
+  returnOrderId = orderId;
+  const lines = sales.filter(s => (s.orderId || s.id) === orderId);
+  const ro = document.getElementById('return-overlay');
+  document.getElementById('return-lines').innerHTML = lines.map(l => {
+    const alreadyReturned = l.returned || 0;
+    const available = l.qty - alreadyReturned;
+    if (available <= 0) return `
+      <div style="padding:10px 0;border-bottom:0.5px solid var(--border);opacity:0.5">
+        <div style="font-size:13px;font-weight:600">${esc(l.itemName)}</div>
+        <div style="font-size:12px;color:var(--text-muted)">Уже возвращено ${alreadyReturned} шт.</div>
+      </div>`;
+    return `
+      <div style="padding:10px 0;border-bottom:0.5px solid var(--border)">
+        <div style="display:flex;align-items:center;gap:10px">
+          <input type="checkbox" id="ret-chk-${l.id}" style="width:18px;height:18px;flex-shrink:0">
+          <div style="flex:1;min-width:0">
+            <div style="font-size:13px;font-weight:600">${esc(l.itemName)}</div>
+            <div style="font-size:12px;color:var(--text-muted)">Продано: ${l.qty} шт. × ${formatPrice(l.price)}${alreadyReturned ? ` · Возвращено: ${alreadyReturned}` : ''}</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
+            <span style="font-size:12px;color:var(--text-muted)">Кол-во:</span>
+            <input type="number" id="ret-qty-${l.id}" value="${available}" min="1" max="${available}"
+              style="width:52px;padding:4px 6px;font-size:13px;text-align:center;border:0.5px solid var(--border-strong);border-radius:6px;background:var(--surface);color:var(--text)">
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+  ro.style.display = 'flex';
+  lockScroll(ro);
+}
+
+function closeReturn() {
+  const ro = document.getElementById('return-overlay');
+  ro.style.display = 'none';
+  unlockScroll(ro);
+  returnOrderId = null;
+}
+
+async function confirmReturn() {
+  const lines = sales.filter(s => (s.orderId || s.id) === returnOrderId);
+  const toReturn = lines.filter(l => {
+    const chk = document.getElementById('ret-chk-' + l.id);
+    return chk && chk.checked;
+  });
+  if (!toReturn.length) { alert('Отметьте хотя бы один товар для возврата'); return; }
+
+  for (const l of toReturn) {
+    const qtyInput = document.getElementById('ret-qty-' + l.id);
+    const qty = Math.min(parseInt(qtyInput?.value) || 1, l.qty - (l.returned || 0));
+    // Оптимистично обновляем локально
+    l.returned = (l.returned || 0) + qty;
+    const it = items.find(i => i.id === l.itemId);
+    if (it) it.qty += qty;
+    // Сохраняем в Firebase
+    txPut('sales', { ...l });
+    if (it) txPut('items', { ...it });
+  }
+
+  closeReturn();
+  renderTable();
+  renderHistory();
+  renderStats();
 }
 
 async function clearHistory() {
@@ -1558,6 +1649,7 @@ Object.assign(window, {
   addToCart, cartQty, cartPrice, cartRemove, clearCart, confirmOrder, showCartToast, createReserve,
   confirmReserve, editReserve, cancelReserve, clearHistory,
   openSettings, closeSettings, saveShopName, setTheme, exportCSV,
+  openReturn, closeReturn, confirmReturn,
   openLightbox, closeLightbox, printReceipt,
   openSheetsModal, closeSheetsModal, importFromSheets,
   renderReport, renderTable, renderReserves, renderHistory,
